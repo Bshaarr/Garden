@@ -1252,34 +1252,21 @@
             const color = document.getElementById('newCourseColor').value;
             
             if (title && description && details && lessons && hours && price) {
-                const newCourse = {
-                    id: 'course-' + Date.now(),
-                    title,
-                    description,
-                    details,
-                    lessons,
-                    hours,
-                    price,
-                    icon,
-                    color
-                };
-                
-                let cloudAdded = false;
-                if (firestore) {
-                    try {
-                        const { id, ...dataWithoutId } = newCourse;
-                        await addDocument(collections.courses, dataWithoutId, id);
-                        cloudAdded = true;
-                    } catch (e) {
-                        console.warn('Failed to add course to Firestore:', e);
-                        showNotification('فشل إضافة الدورة إلى السحابة. تحقق من صلاحيات Firestore.', 'error');
-                        if (typeof syncFromFirestoreIfAvailable === 'function') { syncFromFirestoreIfAvailable(); }
-                        return;
-                    }
+                const newCourseData = { title, description, details, lessons, hours, price, icon, color };
+                let createdId = null;
+                try {
+                    const created = await addDocument(collections.courses, newCourseData);
+                    if (!created || !created.id) throw new Error('cloud add failed');
+                    createdId = created.id;
+                } catch (e) {
+                    console.warn('Failed to add course to cloud DB:', e);
+                    showNotification('فشل إضافة الدورة إلى السحابة. تحقق من الصلاحيات والإعدادات.', 'error');
+                    if (typeof syncFromFirestoreIfAvailable === 'function') { syncFromFirestoreIfAvailable(); }
+                    return;
                 }
-                platformData.courses.push(newCourse);
+                platformData.courses.push({ id: createdId, ...newCourseData });
                 savePlatformData();
-                if (cloudAdded && typeof syncFromFirestoreIfAvailable === 'function') { syncFromFirestoreIfAvailable(); }
+                if (typeof syncFromFirestoreIfAvailable === 'function') { syncFromFirestoreIfAvailable(); }
                 loadAdminCourses();
                 displayCourses();
                 
