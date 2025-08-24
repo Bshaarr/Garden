@@ -395,6 +395,12 @@
                             <button onclick="exportData()" class="bg-blue-500 text-white py-2 rounded-lg active:scale-95 transition-all">
                                 تصدير البيانات
                             </button>
+                            <button onclick="openFirebaseConfigPrompt()" class="bg-indigo-500 text-white py-2 rounded-lg active:scale-95 transition-all">
+                                إعداد Firebase
+                            </button>
+                            <button onclick="initializeDatabase()" class="bg-emerald-500 text-white py-2 rounded-lg active:scale-95 transition-all">
+                                تهيئة قاعدة البيانات
+                            </button>
                             <button onclick="importData()" class="bg-green-500 text-white py-2 rounded-lg active:scale-95 transition-all">
                                 استيراد البيانات
                             </button>
@@ -1382,10 +1388,10 @@
                     <div class="flex items-center justify-between mb-2">
                         <h4 class="text-white font-semibold">${announcement.title}</h4>
                         <div class="flex space-x-2 space-x-reverse">
-                            <button onclick="toggleAnnouncement(${announcement.id})" class="bg-${announcement.active ? 'green' : 'gray'}-500 text-white px-3 py-1 rounded text-sm">
+                            <button onclick="toggleAnnouncement('${announcement.id}')" class="bg-${announcement.active ? 'green' : 'gray'}-500 text-white px-3 py-1 rounded text-sm">
                                 ${announcement.active ? 'نشط' : 'معطل'}
                             </button>
-                            <button onclick="deleteAnnouncement(${announcement.id})" class="bg-red-500 text-white px-3 py-1 rounded text-sm">
+                            <button onclick="deleteAnnouncement('${announcement.id}')" class="bg-red-500 text-white px-3 py-1 rounded text-sm">
                                 حذف
                             </button>
                         </div>
@@ -2203,11 +2209,11 @@
     <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
     <script>
     // Firebase Config - replace with your project config from Firebase console
-    const firebaseConfig = {
+    let firebaseConfig = {
         apiKey: "",
-        authDomain: "",
-        projectId: "",
-        storageBucket: "",
+        authDomain: "platform-fd979.firebaseapp.com",
+        projectId: "platform-fd979",
+        storageBucket: "platform-fd979.appspot.com",
         messagingSenderId: "",
         appId: ""
     };
@@ -2215,6 +2221,10 @@
     let firestore = null;
     function initializeFirebaseIfConfigured() {
         try {
+            const overrideJson = localStorage.getItem('firebaseConfigOverride');
+            if (overrideJson) {
+                try { firebaseConfig = JSON.parse(overrideJson); } catch(e) { console.warn('Invalid firebaseConfigOverride JSON'); }
+            }
             const hasConfig = firebaseConfig && firebaseConfig.projectId && firebaseConfig.apiKey;
             if (hasConfig && typeof firebase !== 'undefined') {
                 if (!firebase.apps.length) {
@@ -2231,6 +2241,20 @@
         }
     }
     initializeFirebaseIfConfigured();
+    function openFirebaseConfigPrompt() {
+        const example = '{"apiKey":"...","authDomain":"platform-fd979.firebaseapp.com","projectId":"platform-fd979","storageBucket":"platform-fd979.appspot.com","messagingSenderId":"...","appId":"..."}';
+        const input = prompt('ألصق إعدادات Firebase (JSON):\nمثال: ' + example, '');
+        if (!input) return;
+        try {
+            const cfg = JSON.parse(input);
+            localStorage.setItem('firebaseConfigOverride', JSON.stringify(cfg));
+            firebaseConfig = cfg;
+            initializeFirebaseIfConfigured();
+            alert('تم حفظ إعدادات Firebase.');
+        } catch (e) {
+            alert('تنسيق JSON غير صالح.');
+        }
+    }
     </script>
     <script>
     // Firestore helpers
@@ -2324,6 +2348,51 @@
         syncFromFirestoreIfAvailable();
     } else {
         document.addEventListener('DOMContentLoaded', syncFromFirestoreIfAvailable);
+    }
+    </script>
+  <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9741da511045cc04',t:'MTc1NjAyODA1NS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script>
+    <script>
+    async function isCollectionEmpty(name) {
+        if (!firestore) return true;
+        const snap = await firestore.collection(name).limit(1).get();
+        return snap.empty;
+    }
+
+    async function initializeDatabase() {
+        if (!firestore) {
+            alert('Firebase غير مهيأ. استخدم زر إعداد Firebase أولاً.');
+            return;
+        }
+        try {
+            const [coursesEmpty, announcementsEmpty] = await Promise.all([
+                isCollectionEmpty(collections.courses),
+                isCollectionEmpty(collections.announcements)
+            ]);
+
+            if (coursesEmpty) {
+                const defaults = [
+                    { id: 'ai-students', title: 'مهارات الذكاء الاصطناعي للطلاب', description: 'تعلم أساسيات وتطبيقات الذكاء الاصطناعي بطريقة مبسطة وممتعة', details: 'دورة شاملة تغطي أساسيات الذكاء الاصطناعي والتعلم الآلي مع تطبيقات عملية', lessons: 12, hours: 8, price: 299, icon: '🎓', color: 'blue' },
+                    { id: 'virtual-character', title: 'تصميم شخصية افتراضية', description: 'إنشاء وتطوير شخصيات ذكية تفاعلية', details: 'تعلم كيفية تصميم وبرمجة شخصيات افتراضية ذكية باستخدام أحدث التقنيات', lessons: 8, hours: 6, price: 199, icon: '🎭', color: 'green' },
+                    { id: 'ai-designers', title: 'الذكاء الاصطناعي للمصممين', description: 'تصميم إبداعي بأدوات الذكاء الاصطناعي', details: 'استخدم أدوات الذكاء الاصطناعي في التصميم الجرافيكي وإنتاج المحتوى الإبداعي', lessons: 10, hours: 7, price: 249, icon: '🎨', color: 'purple' }
+                ];
+                for (const c of defaults) {
+                    const { id, ...data } = c;
+                    await addDocument(collections.courses, data, id);
+                }
+            }
+
+            if (announcementsEmpty) {
+                const ann = { id: 'welcome-1', title: 'مرحباً بكم في منصة موروكس', content: 'نرحب بجميع الطلاب الجدد في منصة موروكس التعليمية', type: 'info', active: true };
+                const { id, ...data } = ann;
+                await addDocument(collections.announcements, data, id);
+            }
+
+            await syncFromFirestoreIfAvailable();
+            showNotification('تم تهيئة قاعدة البيانات بنجاح!', 'success');
+        } catch (e) {
+            console.error('Database initialization failed:', e);
+            showNotification('فشل تهيئة قاعدة البيانات', 'error');
+        }
     }
     </script>
   <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9741da511045cc04',t:'MTc1NjAyODA1NS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
