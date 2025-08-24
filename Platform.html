@@ -1264,17 +1264,22 @@
                     color
                 };
                 
-                try {
-                    if (firestore) {
+                let cloudAdded = false;
+                if (firestore) {
+                    try {
                         const { id, ...dataWithoutId } = newCourse;
                         await addDocument(collections.courses, dataWithoutId, id);
+                        cloudAdded = true;
+                    } catch (e) {
+                        console.warn('Failed to add course to Firestore:', e);
+                        showNotification('فشل إضافة الدورة إلى السحابة. تحقق من صلاحيات Firestore.', 'error');
+                        if (typeof syncFromFirestoreIfAvailable === 'function') { syncFromFirestoreIfAvailable(); }
+                        return;
                     }
-                } catch (e) {
-                    console.warn('Failed to add course to Firestore:', e);
-                } finally {
-                    platformData.courses.push(newCourse);
-                    savePlatformData();
                 }
+                platformData.courses.push(newCourse);
+                savePlatformData();
+                if (cloudAdded && typeof syncFromFirestoreIfAvailable === 'function') { syncFromFirestoreIfAvailable(); }
                 loadAdminCourses();
                 displayCourses();
                 
@@ -1345,10 +1350,13 @@
                         }
                     } catch (e) {
                         console.warn('Failed to update course in Firestore:', e);
-                    } finally {
-                        platformData.courses[courseIndex] = updatedCourse;
-                        savePlatformData();
+                        showNotification('فشل تحديث الدورة في السحابة. تحقق من صلاحيات Firestore.', 'error');
+                        if (typeof syncFromFirestoreIfAvailable === 'function') { syncFromFirestoreIfAvailable(); }
+                        return;
                     }
+                    platformData.courses[courseIndex] = updatedCourse;
+                    savePlatformData();
+                    if (typeof syncFromFirestoreIfAvailable === 'function') { syncFromFirestoreIfAvailable(); }
                     loadAdminCourses();
                     displayCourses();
                     
