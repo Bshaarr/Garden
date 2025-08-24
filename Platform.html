@@ -2439,6 +2439,9 @@
                             if (typeof syncFromFirestoreIfAvailable === 'function') {
                                 syncFromFirestoreIfAvailable();
                             }
++                            if (typeof subscribeRealtime === 'function') {
++                                subscribeRealtime();
++                            }
                         } catch(e) { console.warn('Firestore init after auth failed', e); }
                     };
                     firebase.auth().onAuthStateChanged(function(user){
@@ -2669,6 +2672,33 @@
         syncFromFirestoreIfAvailable();
     } else {
         document.addEventListener('DOMContentLoaded', syncFromFirestoreIfAvailable);
+    }
+
+    // Realtime subscriptions
+    let __unsubscribes = [];
+    function subscribeRealtime() {
+        if (!firestore) return;
+        // cleanup previous
+        try { __unsubscribes.forEach(fn => fn && fn()); } catch(_) {}
+        __unsubscribes = [];
+        // Courses
+        __unsubscribes.push(
+            firestore.collection(collections.courses).onSnapshot(snap => {
+                platformData.courses = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                savePlatformData();
+                if (typeof loadAdminCourses === 'function') loadAdminCourses();
+                if (typeof displayCourses === 'function') displayCourses();
+            })
+        );
+        // Announcements
+        __unsubscribes.push(
+            firestore.collection(collections.announcements).onSnapshot(snap => {
+                platformData.announcements = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                savePlatformData();
+                if (typeof loadAdminAnnouncements === 'function') loadAdminAnnouncements();
+                if (typeof showActiveAnnouncements === 'function') showActiveAnnouncements();
+            })
+        );
     }
     </script>
     <script>
