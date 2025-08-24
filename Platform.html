@@ -409,6 +409,9 @@
                             <button onclick="initializeDatabase()" class="bg-emerald-500 text-white py-2 rounded-lg active:scale-95 transition-all">
                                 تهيئة قاعدة البيانات
                             </button>
+                            <button onclick="copyFirebaseShareLink()" class="bg-indigo-600 text-white py-2 rounded-lg active:scale-95 transition-all">
+                                نسخ رابط إعداد Firebase للمشاركة
+                            </button>
                             <button onclick="importData()" class="bg-green-500 text-white py-2 rounded-lg active:scale-95 transition-all">
                                 استيراد البيانات
                             </button>
@@ -2448,6 +2451,20 @@
             firestore = null;
         }
     }
+    // Apply config from URL if provided: ?fb=BASE64(JSON)
+    (function applyConfigFromUrl(){
+        try {
+            const p = new URLSearchParams(location.search);
+            const b64 = p.get('fb');
+            if (b64) {
+                const json = atob(b64);
+                const cfg = JSON.parse(json);
+                localStorage.setItem('firebaseConfigOverride', JSON.stringify(cfg));
+                firebaseConfig = cfg;
+                console.log('Applied Firebase config from URL');
+            }
+        } catch(e) { console.warn('Failed to apply config from URL', e); }
+    })();
     initializeFirebaseIfConfigured();
     function openFirebaseConfigPrompt() {
         const existing = localStorage.getItem('firebaseConfigOverride');
@@ -2487,6 +2504,11 @@
                 } else {
                     alert('تم حفظ إعدادات Firebase!');
                 }
+                // Offer shareable link
+                try {
+                    const b64 = btoa(JSON.stringify(cfg));
+                    window.__fbShareLink = location.origin + location.pathname + '?fb=' + encodeURIComponent(b64);
+                } catch(_e) {}
             } catch (e) {
                 if (typeof showNotification === 'function') {
                     showNotification('تنسيق JSON غير صالح.', 'error');
@@ -2495,6 +2517,30 @@
                 }
             }
         };
+    }
+
+    function copyFirebaseShareLink() {
+        try {
+            const overrideJson = localStorage.getItem('firebaseConfigOverride');
+            const cfg = overrideJson ? JSON.parse(overrideJson) : (firebaseConfig || {});
+            if (!cfg || !cfg.apiKey || !cfg.projectId) {
+                if (typeof showNotification === 'function') showNotification('لم يتم ضبط إعدادات Firebase بعد', 'error');
+                else alert('لم يتم ضبط إعدادات Firebase بعد');
+                return;
+            }
+            const b64 = btoa(JSON.stringify(cfg));
+            const link = location.origin + location.pathname + '?fb=' + encodeURIComponent(b64);
+            navigator.clipboard && navigator.clipboard.writeText(link).then(() => {
+                if (typeof showNotification === 'function') showNotification('تم نسخ الرابط! أرسله لبقية الأجهزة', 'success');
+                else alert('تم نسخ الرابط!');
+            }).catch(() => {
+                if (typeof showNotification === 'function') showNotification(link, 'info');
+                else alert(link);
+            });
+        } catch (e) {
+            if (typeof showNotification === 'function') showNotification('تعذر إنشاء الرابط', 'error');
+            else alert('تعذر إنشاء الرابط');
+        }
     }
     </script>
     <script>
