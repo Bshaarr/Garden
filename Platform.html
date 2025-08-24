@@ -2384,6 +2384,7 @@
     </script>
     <!-- Firebase SDKs -->
     <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
     <script>
     // Firebase Config - replace with your project config from Firebase console
@@ -2408,7 +2409,26 @@
                 if (!firebase.apps.length) {
                     firebase.initializeApp(firebaseConfig);
                 }
-                firestore = firebase.firestore();
+                // Ensure anonymous auth for secured rules
+                if (firebase.auth) {
+                    const resolveAuth = () => {
+                        try {
+                            firestore = firebase.firestore();
+                            if (typeof syncFromFirestoreIfAvailable === 'function') {
+                                syncFromFirestoreIfAvailable();
+                            }
+                        } catch(e) { console.warn('Firestore init after auth failed', e); }
+                    };
+                    firebase.auth().onAuthStateChanged(function(user){
+                        if (!user) {
+                            firebase.auth().signInAnonymously().then(resolveAuth).catch(function(e){ console.warn('Anonymous auth failed', e); resolveAuth(); });
+                        } else {
+                            resolveAuth();
+                        }
+                    });
+                } else {
+                    firestore = firebase.firestore();
+                }
                 console.log('Firebase initialized');
             } else {
                 console.log('Firebase config missing. Falling back to localStorage.');
