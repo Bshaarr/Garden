@@ -2407,6 +2407,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"></script>
     <script>
     // Firebase Config - replace with your project config from Firebase console
     let firebaseConfig = {
@@ -2420,6 +2421,7 @@
     };
 
     let firestore = null;
+    let rtdb = null;
     function initializeFirebaseIfConfigured() {
         try {
             const overrideJson = localStorage.getItem('firebaseConfigOverride');
@@ -2427,8 +2429,11 @@
                 try { firebaseConfig = JSON.parse(overrideJson); } catch(e) { console.warn('Invalid firebaseConfigOverride JSON'); }
             }
             const hasConfig = firebaseConfig && firebaseConfig.projectId && firebaseConfig.apiKey;
-            if (hasConfig && typeof firebase !== 'undefined') {
+            if (hasConfig and typeof firebase !== 'undefined') {
                 if (!firebase.apps.length) {
+                    if (!firebaseConfig.databaseURL && firebaseConfig.projectId) {
+                        firebaseConfig.databaseURL = `https://${firebaseConfig.projectId}-default-rtdb.firebaseio.com`;
+                    }
                     firebase.initializeApp(firebaseConfig);
                 }
                 // Ensure anonymous auth for secured rules
@@ -2436,12 +2441,13 @@
                     const resolveAuth = () => {
                         try {
                             firestore = firebase.firestore();
+                            rtdb = firebase.database();
                             if (typeof syncFromFirestoreIfAvailable === 'function') {
                                 syncFromFirestoreIfAvailable();
                             }
-+                            if (typeof subscribeRealtime === 'function') {
-+                                subscribeRealtime();
-+                            }
+                            if (typeof subscribeRealtime === 'function') {
+                                subscribeRealtime();
+                            }
                         } catch(e) { console.warn('Firestore init after auth failed', e); }
                     };
                     firebase.auth().onAuthStateChanged(function(user){
@@ -2453,6 +2459,7 @@
                     });
                 } else {
                     firestore = firebase.firestore();
+                    rtdb = firebase.database();
                 }
                 console.log('Firebase initialized');
             } else {
@@ -2461,6 +2468,7 @@
         } catch (e) {
             console.warn('Firebase init failed, using localStorage fallback.', e);
             firestore = null;
+            rtdb = null;
         }
     }
     // Apply config from URL if provided: ?fb=BASE64(JSON)
@@ -2588,35 +2596,61 @@
     }
 
     async function fetchCollection(name) {
-        if (!firestore) return null;
         await ensureAuth();
-        const snapshot = await firestore.collection(name).get();
-        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        if (rtdb) {
+            const snap = await rtdb.ref(name).get();
+            const val = snap.val() || {};
+            return Object.keys(val).map(id => ({ id, ...val[id] }));
+        }
+        if (firestore) {
+            const snapshot = await firestore.collection(name).get();
+            return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        }
+        return null;
     }
 
     async function addDocument(name, data, customId = null) {
-        if (!firestore) return null;
         await ensureAuth();
-        if (customId) {
-            await firestore.collection(name).doc(customId).set(data);
-            return { id: customId, ...data };
+        if (rtdb) {
+            const id = customId || rtdb.ref().push().key;
+            await rtdb.ref(`${name}/${id}`).set(data);
+            return { id, ...data };
         }
-        const ref = await firestore.collection(name).add(data);
-        return { id: ref.id, ...data };
+        if (firestore) {
+            if (customId) {
+                await firestore.collection(name).doc(customId).set(data);
+                return { id: customId, ...data };
+            }
+            const ref = await firestore.collection(name).add(data);
+            return { id: ref.id, ...data };
+        }
+        return null;
     }
 
     async function updateDocument(name, id, data) {
-        if (!firestore) return null;
         await ensureAuth();
-        await firestore.collection(name).doc(id).update(data);
-        return { id, ...data };
+        if (rtdb) {
+            await rtdb.ref(`${name}/${id}`).update(data);
+            return { id, ...data };
+        }
+        if (firestore) {
+            await firestore.collection(name).doc(id).update(data);
+            return { id, ...data };
+        }
+        return null;
     }
 
     async function deleteDocument(name, id) {
-        if (!firestore) return null;
         await ensureAuth();
-        await firestore.collection(name).doc(id).delete();
-        return true;
+        if (rtdb) {
+            await rtdb.ref(`${name}/${id}`).remove();
+            return true;
+        }
+        if (firestore) {
+            await firestore.collection(name).doc(id).delete();
+            return true;
+        }
+        return false;
     }
 
     async function syncFromFirestoreIfAvailable() {
@@ -2692,28 +2726,49 @@
     // Realtime subscriptions
     let __unsubscribes = [];
     function subscribeRealtime() {
-        if (!firestore) return;
+        if (!firestore && !rtdb) return;
         // cleanup previous
         try { __unsubscribes.forEach(fn => fn && fn()); } catch(_) {}
         __unsubscribes = [];
-        // Courses
-        __unsubscribes.push(
-            firestore.collection(collections.courses).onSnapshot(snap => {
-                platformData.courses = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        if (rtdb) {
+            const cRef = rtdb.ref(collections.courses);
+            const aRef = rtdb.ref(collections.announcements);
+            const cCb = cRef.on('value', snap => {
+                const v = snap.val() || {};
+                platformData.courses = Object.keys(v).map(id => ({ id, ...v[id] }));
                 savePlatformData();
                 if (typeof loadAdminCourses === 'function') loadAdminCourses();
                 if (typeof displayCourses === 'function') displayCourses();
-            })
-        );
-        // Announcements
-        __unsubscribes.push(
-            firestore.collection(collections.announcements).onSnapshot(snap => {
-                platformData.announcements = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+            });
+            const aCb = aRef.on('value', snap => {
+                const v = snap.val() || {};
+                platformData.announcements = Object.keys(v).map(id => ({ id, ...v[id] }));
                 savePlatformData();
                 if (typeof loadAdminAnnouncements === 'function') loadAdminAnnouncements();
                 if (typeof showActiveAnnouncements === 'function') showActiveAnnouncements();
-            })
-        );
+            });
+            __unsubscribes.push(() => cRef.off('value', cCb));
+            __unsubscribes.push(() => aRef.off('value', aCb));
+        } else if (firestore) {
+            // Courses
+            __unsubscribes.push(
+                firestore.collection(collections.courses).onSnapshot(snap => {
+                    platformData.courses = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                    savePlatformData();
+                    if (typeof loadAdminCourses === 'function') loadAdminCourses();
+                    if (typeof displayCourses === 'function') displayCourses();
+                })
+            );
+            // Announcements
+            __unsubscribes.push(
+                firestore.collection(collections.announcements).onSnapshot(snap => {
+                    platformData.announcements = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                    savePlatformData();
+                    if (typeof loadAdminAnnouncements === 'function') loadAdminAnnouncements();
+                    if (typeof showActiveAnnouncements === 'function') showActiveAnnouncements();
+                })
+            );
+        }
     }
     </script>
     <script>
