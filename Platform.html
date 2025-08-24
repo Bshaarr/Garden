@@ -2242,18 +2242,51 @@
     }
     initializeFirebaseIfConfigured();
     function openFirebaseConfigPrompt() {
-        const example = '{"apiKey":"...","authDomain":"platform-fd979.firebaseapp.com","projectId":"platform-fd979","storageBucket":"platform-fd979.appspot.com","messagingSenderId":"...","appId":"..."}';
-        const input = prompt('ألصق إعدادات Firebase (JSON):\nمثال: ' + example, '');
-        if (!input) return;
-        try {
-            const cfg = JSON.parse(input);
-            localStorage.setItem('firebaseConfigOverride', JSON.stringify(cfg));
-            firebaseConfig = cfg;
-            initializeFirebaseIfConfigured();
-            alert('تم حفظ إعدادات Firebase.');
-        } catch (e) {
-            alert('تنسيق JSON غير صالح.');
-        }
+        const existing = localStorage.getItem('firebaseConfigOverride');
+        const fallback = '{"apiKey":"","authDomain":"platform-fd979.firebaseapp.com","projectId":"platform-fd979","storageBucket":"platform-fd979.appspot.com","messagingSenderId":"","appId":""}';
+        const defaultValue = existing || JSON.stringify(firebaseConfig || {}, null, 2) || fallback;
+
+        const overlay = document.createElement('div');
+        overlay.id = 'firebaseConfigOverlay';
+        overlay.className = 'fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4';
+        overlay.innerHTML = `
+          <div class="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md">
+            <div class="text-center mb-4">
+              <h2 class="text-xl font-bold text-gray-800">إعداد Firebase</h2>
+              <p class="text-sm text-gray-600">الصق إعدادات تطبيق الويب (JSON)</p>
+            </div>
+            <textarea id="firebaseConfigTextarea" class="w-full h-56 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" dir="ltr" spellcheck="false"></textarea>
+            <div class="flex space-x-3 space-x-reverse mt-4">
+              <button id="firebaseSaveBtn" class="flex-1 bg-green-600 text-white py-2 rounded-lg active:scale-95">حفظ</button>
+              <button id="firebaseCancelBtn" class="flex-1 bg-gray-500 text-white py-2 rounded-lg active:scale-95">إلغاء</button>
+            </div>
+          </div>`;
+        document.body.appendChild(overlay);
+        const textarea = document.getElementById('firebaseConfigTextarea');
+        textarea.value = defaultValue;
+        textarea.focus();
+        const cleanup = () => overlay.remove();
+        document.getElementById('firebaseCancelBtn').onclick = cleanup;
+        document.getElementById('firebaseSaveBtn').onclick = () => {
+            try {
+                const cfg = JSON.parse(textarea.value);
+                localStorage.setItem('firebaseConfigOverride', JSON.stringify(cfg));
+                firebaseConfig = cfg;
+                initializeFirebaseIfConfigured();
+                cleanup();
+                if (typeof showNotification === 'function') {
+                    showNotification('تم حفظ إعدادات Firebase!', 'success');
+                } else {
+                    alert('تم حفظ إعدادات Firebase!');
+                }
+            } catch (e) {
+                if (typeof showNotification === 'function') {
+                    showNotification('تنسيق JSON غير صالح.', 'error');
+                } else {
+                    alert('تنسيق JSON غير صالح.');
+                }
+            }
+        };
     }
     </script>
     <script>
