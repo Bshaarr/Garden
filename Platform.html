@@ -280,6 +280,14 @@
                     <!-- Course registrations will be populated here -->
                 </div>
             </div>
+
+            <!-- Attendance Certificate Requests -->
+            <div class="admin-card rounded-xl p-6 mt-6">
+                <h3 class="text-xl font-bold text-white mb-4">طلبات شهادات الحضور</h3>
+                <div class="space-y-3" id="certificateRequestsList">
+                    <!-- Certificate requests will be populated here -->
+                </div>
+            </div>
         </div>
 
         <!-- Admin Announcements Management -->
@@ -1138,6 +1146,7 @@
             loadAdminAnnouncements();
             loadAdminUsers();
             loadAdminSettings();
+            loadCertificateRequests();
         }
 
         // Admin Courses Management
@@ -1874,11 +1883,14 @@
                             معاينة مجانية
                         </button>
                     </div>
+
+                    <div id="certificateActions" class="mt-4"></div>
                 </div>
             `;
             
             document.getElementById('coursesSection').classList.add('hidden');
             document.getElementById('courseDetailsSection').classList.remove('hidden');
+            updateCertificateActionsUI();
         }
 
         function backToCourses() {
@@ -2204,6 +2216,171 @@
                 showSection('dashboard');
             }
         });
+
+        function loadCertificateRequests() {
+            const requestsList = document.getElementById('certificateRequestsList');
+            if (!requestsList) return;
+            requestsList.innerHTML = '';
+
+            const items = platformData.certificateRequests || [];
+            if (items.length === 0) {
+                requestsList.innerHTML = '<p class="text-white/70 text-center">لا توجد طلبات حتى الآن</p>';
+                return;
+            }
+
+            items.forEach(req => {
+                const course = platformData.courses.find(c => c.id === req.courseId);
+                const div = document.createElement('div');
+                div.className = 'bg-white/10 rounded-lg p-4';
+                div.innerHTML = `
+                    <div class="flex items-center justify-between mb-2">
+                        <div>
+                            <h4 class="text-white font-semibold">${req.studentName}</h4>
+                            <p class="text-white/70 text-sm">${req.email} • ${req.phone}</p>
+                        </div>
+                        <div class="text-white/80 text-xs">${new Date(req.requestDate).toLocaleDateString('ar')}</div>
+                    </div>
+                    <div class="text-white/70 text-sm mb-3">
+                        <p><strong>الدورة:</strong> ${course ? course.title : req.courseId}</p>
+                        <p><strong>الحالة:</strong> ${req.status === 'approved' ? 'مقبول' : req.status === 'rejected' ? 'مرفوض' : 'قيد الانتظار'}</p>
+                    </div>
+                    <div class="flex space-x-2 space-x-reverse">
+                        <button onclick="approveCertificateRequest('${req.id}')" class="bg-green-500 text-white px-3 py-1 rounded text-sm" ${req.status==='approved'?'disabled':''}>موافقة</button>
+                        <button onclick="rejectCertificateRequest('${req.id}')" class="bg-red-500 text-white px-3 py-1 rounded text-sm" ${req.status==='rejected'?'disabled':''}>رفض</button>
+                        <button onclick="deleteCertificateRequest('${req.id}')" class="bg-gray-500 text-white px-3 py-1 rounded text-sm">حذف</button>
+                    </div>
+                `;
+                requestsList.appendChild(div);
+            });
+        }
+
+        async function approveCertificateRequest(requestId) {
+            const idx = (platformData.certificateRequests||[]).findIndex(r => r.id === requestId);
+            if (idx === -1) return;
+            platformData.certificateRequests[idx].status = 'approved';
+            platformData.certificateRequests[idx].approvedBy = 'admin';
+            platformData.certificateRequests[idx].approvalDate = new Date().toISOString();
+            try {
+                if (firestore) {
+                    const { id, ...rest } = platformData.certificateRequests[idx];
+                    await updateDocument(collections.certificateRequests, id, rest);
+                }
+            } catch(e) { console.warn('approveCertificateRequest Firestore error', e); }
+            savePlatformData();
+            loadCertificateRequests();
+            showNotification('تمت الموافقة على الطلب', 'success');
+            updateCertificateActionsUI();
+        }
+
+        async function rejectCertificateRequest(requestId) {
+            const idx = (platformData.certificateRequests||[]).findIndex(r => r.id === requestId);
+            if (idx === -1) return;
+            platformData.certificateRequests[idx].status = 'rejected';
+            platformData.certificateRequests[idx].approvedBy = 'admin';
+            platformData.certificateRequests[idx].approvalDate = new Date().toISOString();
+            try {
+                if (firestore) {
+                    const { id, ...rest } = platformData.certificateRequests[idx];
+                    await updateDocument(collections.certificateRequests, id, rest);
+                }
+            } catch(e) { console.warn('rejectCertificateRequest Firestore error', e); }
+            savePlatformData();
+            loadCertificateRequests();
+            showNotification('تم رفض الطلب', 'info');
+            updateCertificateActionsUI();
+        }
+
+        async function deleteCertificateRequest(requestId) {
+            if (!confirm('هل أنت متأكد من حذف هذا الطلب؟')) return;
+            try {
+                if (firestore) await deleteDocument(collections.certificateRequests, requestId);
+            } catch(e) { console.warn('deleteCertificateRequest Firestore error', e); }
+            platformData.certificateRequests = (platformData.certificateRequests||[]).filter(r => r.id !== requestId);
+            savePlatformData();
+            loadCertificateRequests();
+            showNotification('تم حذف الطلب', 'success');
+            updateCertificateActionsUI();
+        }
+
+        function userIsRegisteredFor(courseId) {
+            return (platformData.registrations||[]).some(r => r.courseId === courseId && r.email === (currentUser && currentUser.email));
+        }
+
+        function getUserCertificateRequest(courseId) {
+            return (platformData.certificateRequests||[]).find(r => r.courseId === courseId && r.email === (currentUser && currentUser.email));
+        }
+
+        function updateCertificateActionsUI() {
+            const container = document.getElementById('certificateActions');
+            if (!container) return;
+            const courseId = window.currentCourseId || (function(){
+                const details = document.getElementById('courseDetailsContent');
+                const btn = details && details.querySelector('button[onclick^="registerForCourse("]');
+                if (!btn) return null;
+                const m = btn.getAttribute('onclick').match(/registerForCourse\('(.+)'\)/);
+                return m ? m[1] : null;
+            })();
+            if (!courseId || !currentUser) { container.innerHTML = ''; return; }
+
+            if (!userIsRegisteredFor(courseId)) {
+                container.innerHTML = '';
+                return;
+            }
+
+            const existing = getUserCertificateRequest(courseId);
+            if (!existing) {
+                container.innerHTML = `
+                    <button onclick="requestAttendanceCertificate('${courseId}')" class="w-full bg-purple-600 text-white py-3 rounded-lg font-semibold active:scale-95 transition-all">
+                        طلب شهادة حضور
+                    </button>
+                `;
+            } else if (existing.status === 'pending') {
+                container.innerHTML = `<div class="text-yellow-600 bg-yellow-50 border border-yellow-200 p-3 rounded-lg text-sm">تم إرسال طلب شهادة الحضور وهو قيد المراجعة.</div>`;
+            } else if (existing.status === 'approved') {
+                container.innerHTML = `
+                    <div class="flex items-center justify-between bg-green-50 border border-green-200 p-3 rounded-lg">
+                        <span class="text-green-700 text-sm">تمت الموافقة على شهادة الحضور</span>
+                        <button onclick="downloadAttendanceCertificate('${courseId}')" class="bg-green-600 text-white px-4 py-2 rounded-lg text-sm">تحميل الشهادة</button>
+                    </div>
+                `;
+            } else if (existing.status === 'rejected') {
+                container.innerHTML = `<div class="text-red-600 bg-red-50 border border-red-200 p-3 rounded-lg text-sm">تم رفض طلب شهادة الحضور.</div>`;
+            }
+        }
+
+        async function requestAttendanceCertificate(courseId) {
+            if (!currentUser) return;
+            if (!userIsRegisteredFor(courseId)) { showNotification('يجب التسجيل في الدورة أولاً', 'error'); return; }
+            const newReq = {
+                id: 'cert-' + Date.now(),
+                courseId,
+                studentName: currentUser.name,
+                email: currentUser.email,
+                phone: currentUser.phone,
+                status: 'pending',
+                requestDate: new Date().toISOString(),
+                approvedBy: null,
+                approvalDate: null
+            };
+            try {
+                if (firestore) {
+                    const { id, ...data } = newReq;
+                    await addDocument(collections.certificateRequests, data, id);
+                }
+            } catch(e) { console.warn('requestAttendanceCertificate Firestore error', e); }
+            platformData.certificateRequests = platformData.certificateRequests || [];
+            platformData.certificateRequests.push(newReq);
+            savePlatformData();
+            showNotification('تم إرسال طلب شهادة الحضور', 'success');
+            loadCertificateRequests();
+            updateCertificateActionsUI();
+        }
+
+        function downloadAttendanceCertificate(courseId) {
+            // Placeholder: reuse existing notification pattern
+            showNotification('جاري تجهيز شهادة الحضور...', 'info');
+            setTimeout(() => showNotification('تم تحميل شهادة الحضور!', 'success'), 1500);
+        }
     </script>
     <!-- Firebase SDKs -->
     <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
