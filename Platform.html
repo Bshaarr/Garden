@@ -1097,6 +1097,7 @@
                 document.getElementById('loginScreen').classList.add('hidden');
                 document.getElementById('adminPanel').classList.remove('hidden');
                 loadAdminData();
+                syncFromFirestoreIfAvailable();
                 showNotification('تم تسجيل دخول المدير بنجاح!', 'success');
             } else {
                 showNotification('بيانات تسجيل الدخول غير صحيحة', 'error');
@@ -1203,15 +1204,25 @@
 
         function deleteRegistration(registrationId) {
             if (confirm('هل أنت متأكد من حذف هذا التسجيل؟')) {
-                platformData.registrations = platformData.registrations.filter(reg => reg.id !== registrationId);
-                savePlatformData();
-                loadCourseRegistrations();
-                loadAdminCourses(); // Refresh to update registration counts
-                showNotification('تم حذف التسجيل بنجاح!', 'success');
-            }
-        }
+                (async () => {
+                    try {
+                        if (firestore) {
+                            await deleteDocument(collections.registrations, String(registrationId));
+                        }
+                    } catch (e) {
+                        console.warn('Failed to delete registration from Firestore:', e);
+                    } finally {
+                        platformData.registrations = platformData.registrations.filter(reg => reg.id !== registrationId);
+                        savePlatformData();
+                        loadCourseRegistrations();
+                        loadAdminCourses();
+                        showNotification('تم حذف التسجيل بنجاح!', 'success');
+                    }
+                })();
+             }
+         }
 
-        function addNewCourse() {
+        async function addNewCourse() {
             const title = document.getElementById('newCourseTitle').value;
             const description = document.getElementById('newCourseDescription').value;
             const details = document.getElementById('newCourseDetails').value;
@@ -1234,8 +1245,17 @@
                     color
                 };
                 
-                platformData.courses.push(newCourse);
-                savePlatformData();
+                try {
+                    if (firestore) {
+                        const { id, ...dataWithoutId } = newCourse;
+                        await addDocument(collections.courses, dataWithoutId, id);
+                    }
+                } catch (e) {
+                    console.warn('Failed to add course to Firestore:', e);
+                } finally {
+                    platformData.courses.push(newCourse);
+                    savePlatformData();
+                }
                 loadAdminCourses();
                 displayCourses();
                 
@@ -1274,7 +1294,7 @@
             }
         }
 
-        function updateCourse(courseId) {
+        async function updateCourse(courseId) {
             const title = document.getElementById('newCourseTitle').value;
             const description = document.getElementById('newCourseDescription').value;
             const details = document.getElementById('newCourseDetails').value;
@@ -1287,7 +1307,7 @@
             if (title && description && details && lessons && hours && price) {
                 const courseIndex = platformData.courses.findIndex(c => c.id === courseId);
                 if (courseIndex !== -1) {
-                    platformData.courses[courseIndex] = {
+                    const updatedCourse = {
                         id: courseId,
                         title,
                         description,
@@ -1299,7 +1319,17 @@
                         color
                     };
                     
-                    savePlatformData();
+                    try {
+                        if (firestore) {
+                            const { id, ...dataWithoutId } = updatedCourse;
+                            await updateDocument(collections.courses, id, dataWithoutId);
+                        }
+                    } catch (e) {
+                        console.warn('Failed to update course in Firestore:', e);
+                    } finally {
+                        platformData.courses[courseIndex] = updatedCourse;
+                        savePlatformData();
+                    }
                     loadAdminCourses();
                     displayCourses();
                     
@@ -1322,13 +1352,21 @@
             }
         }
 
-        function deleteCourse(courseId) {
+        async function deleteCourse(courseId) {
             if (confirm('هل أنت متأكد من حذف هذه الدورة؟')) {
-                platformData.courses = platformData.courses.filter(course => course.id !== courseId);
-                savePlatformData();
-                loadAdminCourses();
-                displayCourses();
-                showNotification('تم حذف الدورة بنجاح!', 'success');
+                try {
+                    if (firestore) {
+                        await deleteDocument(collections.courses, courseId);
+                    }
+                } catch (e) {
+                    console.warn('Failed to delete course from Firestore:', e);
+                } finally {
+                    platformData.courses = platformData.courses.filter(course => course.id !== courseId);
+                    savePlatformData();
+                    loadAdminCourses();
+                    displayCourses();
+                    showNotification('تم حذف الدورة بنجاح!', 'success');
+                }
             }
         }
 
@@ -1361,7 +1399,7 @@
             });
         }
 
-        function addNewAnnouncement() {
+        async function addNewAnnouncement() {
             const title = document.getElementById('newAnnouncementTitle').value;
             const content = document.getElementById('newAnnouncementContent').value;
             const type = document.getElementById('newAnnouncementType').value;
@@ -1375,8 +1413,17 @@
                     active: true
                 };
                 
-                platformData.announcements.push(newAnnouncement);
-                savePlatformData();
+                try {
+                    if (firestore) {
+                        const { id, ...dataWithoutId } = newAnnouncement;
+                        await addDocument(collections.announcements, dataWithoutId, String(id));
+                    }
+                } catch (e) {
+                    console.warn('Failed to add announcement to Firestore:', e);
+                } finally {
+                    platformData.announcements.push(newAnnouncement);
+                    savePlatformData();
+                }
                 loadAdminAnnouncements();
                 showActiveAnnouncements();
                 
@@ -1390,24 +1437,40 @@
             }
         }
 
-        function deleteAnnouncement(announcementId) {
+        async function deleteAnnouncement(announcementId) {
             if (confirm('هل أنت متأكد من حذف هذا الإعلان؟')) {
-                platformData.announcements = platformData.announcements.filter(announcement => announcement.id !== announcementId);
-                savePlatformData();
-                loadAdminAnnouncements();
-                showActiveAnnouncements();
-                showNotification('تم حذف الإعلان بنجاح!', 'success');
+                try {
+                    if (firestore) {
+                        await deleteDocument(collections.announcements, String(announcementId));
+                    }
+                } catch (e) {
+                    console.warn('Failed to delete announcement from Firestore:', e);
+                } finally {
+                    platformData.announcements = platformData.announcements.filter(announcement => announcement.id !== announcementId);
+                    savePlatformData();
+                    loadAdminAnnouncements();
+                    showActiveAnnouncements();
+                    showNotification('تم حذف الإعلان بنجاح!', 'success');
+                }
             }
         }
 
-        function toggleAnnouncement(announcementId) {
+        async function toggleAnnouncement(announcementId) {
             const announcement = platformData.announcements.find(a => a.id === announcementId);
             if (announcement) {
-                announcement.active = !announcement.active;
-                savePlatformData();
-                loadAdminAnnouncements();
-                showActiveAnnouncements();
-                showNotification(`تم ${announcement.active ? 'تفعيل' : 'إلغاء'} الإعلان`, 'success');
+                try {
+                    announcement.active = !announcement.active;
+                    if (firestore) {
+                        await updateDocument(collections.announcements, String(announcementId), { active: announcement.active });
+                    }
+                } catch (e) {
+                    console.warn('Failed to toggle announcement in Firestore:', e);
+                } finally {
+                    savePlatformData();
+                    loadAdminAnnouncements();
+                    showActiveAnnouncements();
+                    showNotification(`تم ${announcement.active ? 'تفعيل' : 'إلغاء'} الإعلان`, 'success');
+                }
             }
         }
 
@@ -1626,7 +1689,7 @@
                 loadQuizData();
                 displayCourses();
                 showActiveAnnouncements();
-                showNotification('تم تسجيل الدخول بنجاح!', 'success');
+                syncFromFirestoreIfAvailable();
                 
                 window.scrollTo({ top: 0, behavior: 'smooth' });
             }
@@ -1827,7 +1890,7 @@
         }
 
         // Course Registration Form Handler
-        document.getElementById('courseRegistrationForm').addEventListener('submit', function(e) {
+        document.getElementById('courseRegistrationForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             
             const courseId = window.currentCourseId;
@@ -1848,8 +1911,17 @@
                     registrationDate: new Date().toISOString()
                 };
                 
-                platformData.registrations.push(registration);
-                savePlatformData();
+                try {
+                    if (firestore) {
+                        const { id, ...dataWithoutId } = registration;
+                        await addDocument(collections.registrations, dataWithoutId, id);
+                    }
+                } catch (e) {
+                    console.warn('Failed to add registration to Firestore:', e);
+                } finally {
+                    platformData.registrations.push(registration);
+                    savePlatformData();
+                }
                 
                 hideCourseRegistration();
                 showNotification('تم تسجيلك في الدورة بنجاح! سيتم التواصل معك قريباً', 'success');
@@ -2126,5 +2198,133 @@
             }
         });
     </script>
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9741da511045cc04',t:'MTc1NjAyODA1NS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+    <script>
+    // Firebase Config - replace with your project config from Firebase console
+    const firebaseConfig = {
+        apiKey: "",
+        authDomain: "",
+        projectId: "",
+        storageBucket: "",
+        messagingSenderId: "",
+        appId: ""
+    };
+
+    let firestore = null;
+    function initializeFirebaseIfConfigured() {
+        try {
+            const hasConfig = firebaseConfig && firebaseConfig.projectId && firebaseConfig.apiKey;
+            if (hasConfig && typeof firebase !== 'undefined') {
+                if (!firebase.apps.length) {
+                    firebase.initializeApp(firebaseConfig);
+                }
+                firestore = firebase.firestore();
+                console.log('Firebase initialized');
+            } else {
+                console.log('Firebase config missing. Falling back to localStorage.');
+            }
+        } catch (e) {
+            console.warn('Firebase init failed, using localStorage fallback.', e);
+            firestore = null;
+        }
+    }
+    initializeFirebaseIfConfigured();
+    </script>
+    <script>
+    // Firestore helpers
+    const collections = {
+        courses: 'courses',
+        announcements: 'announcements',
+        registrations: 'registrations',
+        users: 'users'
+    };
+
+    async function fetchCollection(name) {
+        if (!firestore) return null;
+        const snapshot = await firestore.collection(name).get();
+        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    }
+
+    async function addDocument(name, data, customId = null) {
+        if (!firestore) return null;
+        if (customId) {
+            await firestore.collection(name).doc(customId).set(data);
+            return { id: customId, ...data };
+        }
+        const ref = await firestore.collection(name).add(data);
+        return { id: ref.id, ...data };
+    }
+
+    async function updateDocument(name, id, data) {
+        if (!firestore) return null;
+        await firestore.collection(name).doc(id).update(data);
+        return { id, ...data };
+    }
+
+    async function deleteDocument(name, id) {
+        if (!firestore) return null;
+        await firestore.collection(name).doc(id).delete();
+        return true;
+    }
+
+    async function syncFromFirestoreIfAvailable() {
+        if (!firestore) return;
+        try {
+            const [courses, announcements, registrations] = await Promise.all([
+                fetchCollection(collections.courses),
+                fetchCollection(collections.announcements),
+                fetchCollection(collections.registrations)
+            ]);
+
+            if (Array.isArray(courses)) platformData.courses = courses.map(c => ({
+                id: c.id,
+                title: c.title,
+                description: c.description,
+                details: c.details,
+                lessons: c.lessons,
+                hours: c.hours,
+                price: c.price,
+                icon: c.icon,
+                color: c.color
+            }));
+
+            if (Array.isArray(announcements)) platformData.announcements = announcements.map(a => ({
+                id: a.id,
+                title: a.title,
+                content: a.content,
+                type: a.type,
+                active: a.active
+            }));
+
+            if (Array.isArray(registrations)) platformData.registrations = registrations.map(r => ({
+                id: r.id,
+                courseId: r.courseId,
+                studentName: r.studentName,
+                email: r.email,
+                phone: r.phone,
+                reason: r.reason,
+                educationLevel: r.educationLevel,
+                previousExperience: r.previousExperience,
+                registrationDate: r.registrationDate
+            }));
+
+            savePlatformData();
+            if (typeof loadAdminData === 'function') loadAdminData();
+            if (typeof displayCourses === 'function') displayCourses();
+            if (typeof showActiveAnnouncements === 'function') showActiveAnnouncements();
+        } catch (e) {
+            console.warn('Sync from Firestore failed:', e);
+        }
+    }
+
+    // Kick initial sync on load
+    if (document.readyState === 'complete' || document.readyState === 'interactive') {
+        syncFromFirestoreIfAvailable();
+    } else {
+        document.addEventListener('DOMContentLoaded', syncFromFirestoreIfAvailable);
+    }
+    </script>
+  <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9741da511045cc04',t:'MTc1NjAyODA1NS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
