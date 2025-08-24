@@ -1370,18 +1370,28 @@
 
         async function deleteCourse(courseId) {
             if (confirm('هل أنت متأكد من حذف هذه الدورة؟')) {
-                try {
-                    if (firestore) {
+                let cloudDeleted = false;
+                if (firestore) {
+                    try {
                         await deleteDocument(collections.courses, courseId);
+                        cloudDeleted = true;
+                    } catch (e) {
+                        console.warn('Failed to delete course from Firestore:', e);
+                        showNotification('فشل حذف الدورة من السحابة. تحقق من صلاحيات Firestore.', 'error');
+                        if (typeof syncFromFirestoreIfAvailable === 'function') {
+                            syncFromFirestoreIfAvailable();
+                        }
+                        return;
                     }
-                } catch (e) {
-                    console.warn('Failed to delete course from Firestore:', e);
-                } finally {
-                    platformData.courses = platformData.courses.filter(course => course.id !== courseId);
-                    savePlatformData();
-                    loadAdminCourses();
-                    displayCourses();
-                    showNotification('تم حذف الدورة بنجاح!', 'success');
+                }
+                // If no Firestore, or cloud deletion succeeded, proceed locally
+                platformData.courses = platformData.courses.filter(course => course.id !== courseId);
+                savePlatformData();
+                loadAdminCourses();
+                displayCourses();
+                showNotification('تم حذف الدورة بنجاح!', 'success');
+                if (cloudDeleted && typeof syncFromFirestoreIfAvailable === 'function') {
+                    syncFromFirestoreIfAvailable();
                 }
             }
         }
