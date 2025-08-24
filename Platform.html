@@ -2466,6 +2466,17 @@
             }
         } catch(e) { console.warn('Failed to apply config from URL', e); }
     })();
+    // Optional: clear local cached data via ?reset=1
+    (function resetFromUrl(){
+        try {
+            const p = new URLSearchParams(location.search);
+            if (p.get('reset') === '1') {
+                localStorage.removeItem('platformData');
+                localStorage.removeItem('userStats');
+                console.log('Cleared local cached data via URL param');
+            }
+        } catch(e) { console.warn('Failed to reset from URL', e); }
+    })();
     initializeFirebaseIfConfigured();
     function openFirebaseConfigPrompt() {
         const existing = localStorage.getItem('firebaseConfigOverride');
