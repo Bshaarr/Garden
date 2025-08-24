@@ -2429,7 +2429,7 @@
                 try { firebaseConfig = JSON.parse(overrideJson); } catch(e) { console.warn('Invalid firebaseConfigOverride JSON'); }
             }
             const hasConfig = firebaseConfig && firebaseConfig.projectId && firebaseConfig.apiKey;
-            if (hasConfig and typeof firebase !== 'undefined') {
+            if (hasConfig && typeof firebase !== 'undefined') {
                 if (!firebase.apps.length) {
                     if (!firebaseConfig.databaseURL && firebaseConfig.projectId) {
                         firebaseConfig.databaseURL = `https://${firebaseConfig.projectId}-default-rtdb.firebaseio.com`;
