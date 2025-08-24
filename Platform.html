@@ -1,0 +1,2130 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>منصة موروكس التعليمية - نظام إدارة التعلم المتكامل</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700&display=swap');
+        
+        * {
+            font-family: 'Cairo', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        body {
+            overflow-x: hidden;
+            -webkit-overflow-scrolling: touch;
+        }
+        
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        
+        .card-hover {
+            transition: all 0.3s ease;
+        }
+        
+        .card-hover:active {
+            transform: scale(0.98);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+        }
+        
+        .robot-animation {
+            animation: float 3s ease-in-out infinite;
+        }
+        
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.8s ease-in;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .progress-bar {
+            transition: width 0.5s ease-in-out;
+        }
+        
+        .notification {
+            animation: slideIn 0.3s ease-out;
+        }
+        
+        @keyframes slideIn {
+            from { transform: translateX(100%); }
+            to { transform: translateX(0); }
+        }
+        
+        .chat-message {
+            animation: messageSlide 0.3s ease-out;
+        }
+        
+        @keyframes messageSlide {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .certificate-bg {
+            background: linear-gradient(45deg, #f3ec78, #af4261);
+        }
+        
+        .quiz-option:hover {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+        }
+
+        .admin-panel {
+            background: linear-gradient(135deg, #1e3a8a 0%, #7c3aed 100%);
+        }
+
+        .admin-card {
+            backdrop-filter: blur(10px);
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Notifications Container -->
+    <div id="notifications" class="fixed top-4 left-4 z-50 space-y-2"></div>
+
+    <!-- Login Screen -->
+    <div id="loginScreen" class="min-h-screen gradient-bg flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm fade-in">
+            <div class="text-center mb-6">
+                <div class="robot-animation text-5xl mb-3">🤖</div>
+                <h1 class="text-2xl font-bold text-gray-800 mb-2">مرحباً بك في موروكس</h1>
+                <p class="text-sm text-gray-600">منصة تدريب مهارات الذكاء الاصطناعي</p>
+            </div>
+            
+            <form id="loginForm" class="space-y-4">
+                <div>
+                    <label class="block text-gray-700 font-semibold mb-2 text-sm">الاسم الكامل</label>
+                    <input type="text" id="studentName" required 
+                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-base"
+                           placeholder="أدخل اسمك الكامل">
+                </div>
+                
+                <div>
+                    <label class="block text-gray-700 font-semibold mb-2 text-sm">رقم الهاتف</label>
+                    <input type="tel" id="studentPhone" required 
+                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-base"
+                           placeholder="أدخل رقم هاتفك">
+                </div>
+                
+                <div>
+                    <label class="block text-gray-700 font-semibold mb-2 text-sm">البريد الإلكتروني</label>
+                    <input type="email" id="studentEmail" required 
+                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-base"
+                           placeholder="أدخل بريدك الإلكتروني">
+                </div>
+                
+                <button type="submit" 
+                        class="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-4 rounded-lg font-semibold active:scale-95 transition-all text-lg">
+                    دخول المنصة
+                </button>
+
+                <!-- Admin Login Button -->
+                <button type="button" onclick="showAdminLogin()"
+                        class="w-full bg-gradient-to-r from-red-600 to-pink-600 text-white py-3 rounded-lg font-semibold active:scale-95 transition-all text-sm">
+                    <i class="fas fa-user-shield ml-2"></i>دخول المدير
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Admin Login Modal -->
+    <div id="adminLoginModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm">
+            <div class="text-center mb-6">
+                <div class="text-4xl mb-3">🛡️</div>
+                <h2 class="text-xl font-bold text-gray-800">دخول المدير</h2>
+            </div>
+            
+            <form id="adminLoginForm" class="space-y-4">
+                <div>
+                    <label class="block text-gray-700 font-semibold mb-2 text-sm">اسم المستخدم</label>
+                    <input type="text" id="adminUsername" required 
+                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all text-base"
+                           placeholder="admin">
+                </div>
+                
+                <div>
+                    <label class="block text-gray-700 font-semibold mb-2 text-sm">كلمة المرور</label>
+                    <input type="password" id="adminPassword" required 
+                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all text-base"
+                           placeholder="123456">
+                </div>
+                
+                <div class="flex space-x-3 space-x-reverse">
+                    <button type="submit" 
+                            class="flex-1 bg-gradient-to-r from-red-600 to-pink-600 text-white py-3 rounded-lg font-semibold active:scale-95 transition-all">
+                        دخول
+                    </button>
+                    <button type="button" onclick="hideAdminLogin()"
+                            class="flex-1 bg-gray-500 text-white py-3 rounded-lg font-semibold active:scale-95 transition-all">
+                        إلغاء
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Admin Panel -->
+    <div id="adminPanel" class="hidden min-h-screen admin-panel">
+        <!-- Admin Header -->
+        <header class="bg-white/10 backdrop-blur-md border-b border-white/20 sticky top-0 z-40">
+            <div class="px-4 py-3">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center space-x-3 space-x-reverse">
+                        <div class="text-2xl">🛡️</div>
+                        <div>
+                            <h1 class="text-lg font-bold text-white">لوحة تحكم المدير</h1>
+                            <p class="text-xs text-white/70">إدارة منصة موروكس</p>
+                        </div>
+                    </div>
+                    
+                    <button onclick="logoutAdmin()" class="text-white/70 hover:text-white p-2">
+                        <i class="fas fa-sign-out-alt text-lg"></i>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Admin Navigation -->
+        <div class="px-4 py-4">
+            <div class="grid grid-cols-2 gap-3 mb-6">
+                <button onclick="showAdminSection('courses')" class="admin-nav-btn admin-card text-white p-4 rounded-xl text-center active:scale-95 transition-all">
+                    <i class="fas fa-graduation-cap text-2xl mb-2"></i>
+                    <p class="text-sm font-semibold">إدارة الدورات</p>
+                </button>
+                <button onclick="showAdminSection('announcements')" class="admin-nav-btn admin-card text-white p-4 rounded-xl text-center active:scale-95 transition-all">
+                    <i class="fas fa-bullhorn text-2xl mb-2"></i>
+                    <p class="text-sm font-semibold">الإعلانات</p>
+                </button>
+                <button onclick="showAdminSection('users')" class="admin-nav-btn admin-card text-white p-4 rounded-xl text-center active:scale-95 transition-all">
+                    <i class="fas fa-users text-2xl mb-2"></i>
+                    <p class="text-sm font-semibold">إدارة المستخدمين</p>
+                </button>
+                <button onclick="showAdminSection('settings')" class="admin-nav-btn admin-card text-white p-4 rounded-xl text-center active:scale-95 transition-all">
+                    <i class="fas fa-cogs text-2xl mb-2"></i>
+                    <p class="text-sm font-semibold">إعدادات المنصة</p>
+                </button>
+            </div>
+        </div>
+
+        <!-- Admin Courses Management -->
+        <div id="adminCoursesSection" class="px-4 pb-8">
+            <div class="admin-card rounded-xl p-6 mb-6">
+                <h3 class="text-xl font-bold text-white mb-4">إدارة الدورات</h3>
+                
+                <!-- Add New Course -->
+                <div class="bg-white/10 rounded-lg p-4 mb-4">
+                    <h4 class="text-lg font-semibold text-white mb-3">إضافة دورة جديدة</h4>
+                    <div class="space-y-3">
+                        <input type="text" id="newCourseTitle" placeholder="عنوان الدورة" 
+                               class="w-full px-3 py-2 bg-white/20 border border-white/30 rounded-lg text-white placeholder-white/70 focus:ring-2 focus:ring-white/50">
+                        <input type="text" id="newCourseDescription" placeholder="وصف الدورة" 
+                               class="w-full px-3 py-2 bg-white/20 border border-white/30 rounded-lg text-white placeholder-white/70 focus:ring-2 focus:ring-white/50">
+                        <div class="grid grid-cols-2 gap-3">
+                            <input type="number" id="newCourseLessons" placeholder="عدد الدروس" 
+                                   class="w-full px-3 py-2 bg-white/20 border border-white/30 rounded-lg text-white placeholder-white/70 focus:ring-2 focus:ring-white/50">
+                            <input type="number" id="newCourseHours" placeholder="عدد الساعات" 
+                                   class="w-full px-3 py-2 bg-white/20 border border-white/30 rounded-lg text-white placeholder-white/70 focus:ring-2 focus:ring-white/50">
+                        </div>
+                        <input type="number" id="newCoursePrice" placeholder="تكلفة الدورة (ريال)" 
+                               class="w-full px-3 py-2 bg-white/20 border border-white/30 rounded-lg text-white placeholder-white/70 focus:ring-2 focus:ring-white/50">
+                        <textarea id="newCourseDetails" placeholder="تفاصيل الدورة" rows="3"
+                                  class="w-full px-3 py-2 bg-white/20 border border-white/30 rounded-lg text-white placeholder-white/70 focus:ring-2 focus:ring-white/50"></textarea>
+                        <select id="newCourseIcon" class="w-full px-3 py-2 bg-white/20 border border-white/30 rounded-lg text-white focus:ring-2 focus:ring-white/50">
+                            <option value="🎓">🎓 تخرج</option>
+                            <option value="🤖">🤖 روبوت</option>
+                            <option value="🎨">🎨 فن</option>
+                            <option value="💻">💻 برمجة</option>
+                            <option value="📱">📱 تطبيقات</option>
+                            <option value="🎭">🎭 تصميم</option>
+                        </select>
+                        <select id="newCourseColor" class="w-full px-3 py-2 bg-white/20 border border-white/30 rounded-lg text-white focus:ring-2 focus:ring-white/50">
+                            <option value="blue">أزرق</option>
+                            <option value="green">أخضر</option>
+                            <option value="purple">بنفسجي</option>
+                            <option value="red">أحمر</option>
+                            <option value="yellow">أصفر</option>
+                            <option value="pink">وردي</option>
+                        </select>
+                        <button onclick="addNewCourse()" class="w-full bg-green-500 text-white py-2 rounded-lg active:scale-95 transition-all">
+                            إضافة الدورة
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Existing Courses -->
+                <div class="space-y-3" id="adminCoursesList">
+                    <!-- Courses will be populated here -->
+                </div>
+            </div>
+
+            <!-- Course Registrations -->
+            <div class="admin-card rounded-xl p-6">
+                <h3 class="text-xl font-bold text-white mb-4">تسجيلات الطلاب</h3>
+                <div class="space-y-3" id="courseRegistrationsList">
+                    <!-- Course registrations will be populated here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Admin Announcements Management -->
+        <div id="adminAnnouncementsSection" class="px-4 pb-8 hidden">
+            <div class="admin-card rounded-xl p-6 mb-6">
+                <h3 class="text-xl font-bold text-white mb-4">إدارة الإعلانات</h3>
+                
+                <!-- Add New Announcement -->
+                <div class="bg-white/10 rounded-lg p-4 mb-4">
+                    <h4 class="text-lg font-semibold text-white mb-3">إضافة إعلان جديد</h4>
+                    <div class="space-y-3">
+                        <input type="text" id="newAnnouncementTitle" placeholder="عنوان الإعلان" 
+                               class="w-full px-3 py-2 bg-white/20 border border-white/30 rounded-lg text-white placeholder-white/70 focus:ring-2 focus:ring-white/50">
+                        <textarea id="newAnnouncementContent" placeholder="محتوى الإعلان" rows="3"
+                                  class="w-full px-3 py-2 bg-white/20 border border-white/30 rounded-lg text-white placeholder-white/70 focus:ring-2 focus:ring-white/50"></textarea>
+                        <select id="newAnnouncementType" class="w-full px-3 py-2 bg-white/20 border border-white/30 rounded-lg text-white focus:ring-2 focus:ring-white/50">
+                            <option value="info">معلومات</option>
+                            <option value="success">نجاح</option>
+                            <option value="warning">تحذير</option>
+                            <option value="error">خطأ</option>
+                        </select>
+                        <button onclick="addNewAnnouncement()" class="w-full bg-green-500 text-white py-2 rounded-lg active:scale-95 transition-all">
+                            إضافة الإعلان
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Existing Announcements -->
+                <div class="space-y-3" id="adminAnnouncementsList">
+                    <!-- Announcements will be populated here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Admin Users Management -->
+        <div id="adminUsersSection" class="px-4 pb-8 hidden">
+            <div class="admin-card rounded-xl p-6 mb-6">
+                <h3 class="text-xl font-bold text-white mb-4">إدارة المستخدمين</h3>
+                
+                <!-- User Statistics -->
+                <div class="grid grid-cols-2 gap-4 mb-6">
+                    <div class="bg-white/10 rounded-lg p-4 text-center">
+                        <div class="text-2xl font-bold text-white" id="totalUsers">0</div>
+                        <div class="text-white/70 text-sm">إجمالي المستخدمين</div>
+                    </div>
+                    <div class="bg-white/10 rounded-lg p-4 text-center">
+                        <div class="text-2xl font-bold text-white" id="activeUsers">0</div>
+                        <div class="text-white/70 text-sm">المستخدمين النشطين</div>
+                    </div>
+                </div>
+
+                <!-- Users List -->
+                <div class="space-y-3" id="adminUsersList">
+                    <!-- Users will be populated here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Admin Settings -->
+        <div id="adminSettingsSection" class="px-4 pb-8 hidden">
+            <div class="admin-card rounded-xl p-6 mb-6">
+                <h3 class="text-xl font-bold text-white mb-4">إعدادات المنصة</h3>
+                
+                <div class="space-y-4">
+                    <!-- Platform Settings -->
+                    <div class="bg-white/10 rounded-lg p-4">
+                        <h4 class="text-lg font-semibold text-white mb-3">إعدادات عامة</h4>
+                        <div class="space-y-3">
+                            <div>
+                                <label class="block text-white/70 text-sm mb-1">اسم المنصة</label>
+                                <input type="text" id="platformName" value="منصة موروكس التعليمية" 
+                                       class="w-full px-3 py-2 bg-white/20 border border-white/30 rounded-lg text-white focus:ring-2 focus:ring-white/50">
+                            </div>
+                            <div>
+                                <label class="block text-white/70 text-sm mb-1">وصف المنصة</label>
+                                <input type="text" id="platformDescription" value="منصة تدريب مهارات الذكاء الاصطناعي" 
+                                       class="w-full px-3 py-2 bg-white/20 border border-white/30 rounded-lg text-white focus:ring-2 focus:ring-white/50">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Social Media Links -->
+                    <div class="bg-white/10 rounded-lg p-4">
+                        <h4 class="text-lg font-semibold text-white mb-3">روابط التواصل الاجتماعي</h4>
+                        <div class="space-y-3">
+                            <div>
+                                <label class="block text-white/70 text-sm mb-1">فيسبوك</label>
+                                <input type="url" id="facebookLink" value="https://www.facebook.com/share/1GmdvSKcuU/" 
+                                       class="w-full px-3 py-2 bg-white/20 border border-white/30 rounded-lg text-white focus:ring-2 focus:ring-white/50">
+                            </div>
+                            <div>
+                                <label class="block text-white/70 text-sm mb-1">إنستغرام</label>
+                                <input type="url" id="instagramLink" value="https://www.instagram.com/morox732?igsh=ajBlbW1jdHpweTdu" 
+                                       class="w-full px-3 py-2 bg-white/20 border border-white/30 rounded-lg text-white focus:ring-2 focus:ring-white/50">
+                            </div>
+                            <div>
+                                <label class="block text-white/70 text-sm mb-1">يوتيوب</label>
+                                <input type="url" id="youtubeLink" value="https://youtube.com/@morox732?si=IXRA6Jv8ut7L5Bvb" 
+                                       class="w-full px-3 py-2 bg-white/20 border border-white/30 rounded-lg text-white focus:ring-2 focus:ring-white/50">
+                            </div>
+                            <div>
+                                <label class="block text-white/70 text-sm mb-1">واتساب</label>
+                                <input type="url" id="whatsappLink" value="https://chat.whatsapp.com/FJnj4j3bMhJ15d7XhUBmgl?mode=ac_t" 
+                                       class="w-full px-3 py-2 bg-white/20 border border-white/30 rounded-lg text-white focus:ring-2 focus:ring-white/50">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Data Management -->
+                    <div class="bg-white/10 rounded-lg p-4">
+                        <h4 class="text-lg font-semibold text-white mb-3">إدارة البيانات</h4>
+                        <div class="grid grid-cols-2 gap-3">
+                            <button onclick="exportData()" class="bg-blue-500 text-white py-2 rounded-lg active:scale-95 transition-all">
+                                تصدير البيانات
+                            </button>
+                            <button onclick="importData()" class="bg-green-500 text-white py-2 rounded-lg active:scale-95 transition-all">
+                                استيراد البيانات
+                            </button>
+                            <button onclick="resetData()" class="bg-red-500 text-white py-2 rounded-lg active:scale-95 transition-all">
+                                إعادة تعيين البيانات
+                            </button>
+                            <button onclick="saveSettings()" class="bg-purple-500 text-white py-2 rounded-lg active:scale-95 transition-all">
+                                حفظ الإعدادات
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Website -->
+    <div id="mainWebsite" class="hidden">
+        <!-- Announcements Banner -->
+        <div id="announcementsBanner" class="bg-yellow-500 text-black py-2 px-4 text-center hidden">
+            <div class="flex items-center justify-between">
+                <span id="announcementText" class="text-sm font-semibold"></span>
+                <button onclick="hideAnnouncement()" class="text-black hover:text-gray-700">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Header -->
+        <header class="bg-white shadow-lg sticky top-0 z-40">
+            <div class="px-4 py-3">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center space-x-3 space-x-reverse">
+                        <div class="text-2xl">🤖</div>
+                        <div>
+                            <h1 class="text-lg font-bold text-gray-800">موروكس</h1>
+                            <p class="text-xs text-gray-600">منصة تدريب الذكاء الاصطناعي</p>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-center space-x-3 space-x-reverse">
+                        <div class="relative">
+                            <button onclick="toggleNotifications()" class="text-gray-600 active:text-blue-600 relative p-2">
+                                <i class="fas fa-bell text-lg"></i>
+                                <span id="notificationBadge" class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center hidden">3</span>
+                            </button>
+                        </div>
+                        <button onclick="toggleMobileMenu()" class="text-gray-600 active:text-blue-600 p-2">
+                            <i class="fas fa-bars text-lg"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Mobile Menu -->
+                <div id="mobileMenu" class="hidden bg-white border-t border-gray-200 py-3 mt-3">
+                    <div class="space-y-1">
+                        <button onclick="showSection('dashboard')" class="nav-btn block w-full text-right py-3 px-4 text-gray-700 active:bg-blue-50 active:text-blue-600 rounded-lg transition-all">
+                            <i class="fas fa-tachometer-alt ml-3"></i>لوحة التحكم
+                        </button>
+                        <button onclick="showSection('courses')" class="nav-btn block w-full text-right py-3 px-4 text-gray-700 active:bg-blue-50 active:text-blue-600 rounded-lg transition-all">
+                            <i class="fas fa-graduation-cap ml-3"></i>الدورات
+                        </button>
+                        <button onclick="showSection('quiz')" class="nav-btn block w-full text-right py-3 px-4 text-gray-700 active:bg-blue-50 active:text-blue-600 rounded-lg transition-all">
+                            <i class="fas fa-question-circle ml-3"></i>الاختبارات
+                        </button>
+                        <button onclick="showSection('certificates')" class="nav-btn block w-full text-right py-3 px-4 text-gray-700 active:bg-blue-50 active:text-blue-600 rounded-lg transition-all">
+                            <i class="fas fa-certificate ml-3"></i>الشهادات
+                        </button>
+                        <button onclick="showSection('chat')" class="nav-btn block w-full text-right py-3 px-4 text-gray-700 active:bg-blue-50 active:text-blue-600 rounded-lg transition-all">
+                            <i class="fas fa-comments ml-3"></i>الدردشة
+                        </button>
+                        <hr class="my-2">
+                        <button onclick="logout()" class="block w-full text-right py-3 px-4 text-red-600 active:bg-red-50 rounded-lg transition-all">
+                            <i class="fas fa-sign-out-alt ml-3"></i>تسجيل خروج
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Social Media Bar -->
+        <div class="bg-gradient-to-r from-blue-600 to-purple-600 py-3">
+            <div class="container mx-auto px-4">
+                <div class="flex items-center justify-center space-x-6 space-x-reverse">
+                    <span class="text-white font-semibold">تابعنا على:</span>
+                    <a href="https://www.facebook.com/share/1GmdvSKcuU/" target="_blank" 
+                       class="text-white hover:text-blue-200 transition-all transform hover:scale-110">
+                        <i class="fab fa-facebook-f text-xl"></i>
+                    </a>
+                    <a href="https://www.instagram.com/morox732?igsh=ajBlbW1jdHpweTdu" target="_blank" 
+                       class="text-white hover:text-pink-200 transition-all transform hover:scale-110">
+                        <i class="fab fa-instagram text-xl"></i>
+                    </a>
+                    <a href="https://youtube.com/@morox732?si=IXRA6Jv8ut7L5Bvb" target="_blank" 
+                       class="text-white hover:text-red-200 transition-all transform hover:scale-110">
+                        <i class="fab fa-youtube text-xl"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Dashboard Section -->
+        <section id="dashboardSection" class="py-4">
+            <div class="px-4">
+                <div class="mb-6">
+                    <h2 class="text-xl font-bold text-gray-800 mb-4">لوحة التحكم الشخصية</h2>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="bg-gradient-to-r from-blue-500 to-blue-600 text-white p-4 rounded-xl">
+                            <div class="text-center">
+                                <i class="fas fa-graduation-cap text-2xl text-blue-200 mb-2"></i>
+                                <p class="text-blue-100 text-xs">الدورات المكتملة</p>
+                                <p class="text-2xl font-bold" id="completedCourses">0</p>
+                            </div>
+                        </div>
+                        
+                        <div class="bg-gradient-to-r from-green-500 to-green-600 text-white p-4 rounded-xl">
+                            <div class="text-center">
+                                <i class="fas fa-certificate text-2xl text-green-200 mb-2"></i>
+                                <p class="text-green-100 text-xs">الشهادات المحصلة</p>
+                                <p class="text-2xl font-bold" id="earnedCertificates">0</p>
+                            </div>
+                        </div>
+                        
+                        <div class="bg-gradient-to-r from-purple-500 to-purple-600 text-white p-4 rounded-xl">
+                            <div class="text-center">
+                                <i class="fas fa-clock text-2xl text-purple-200 mb-2"></i>
+                                <p class="text-purple-100 text-xs">ساعات التعلم</p>
+                                <p class="text-2xl font-bold" id="studyHours">0</p>
+                            </div>
+                        </div>
+                        
+                        <div class="bg-gradient-to-r from-orange-500 to-orange-600 text-white p-4 rounded-xl">
+                            <div class="text-center">
+                                <i class="fas fa-star text-2xl text-orange-200 mb-2"></i>
+                                <p class="text-orange-100 text-xs">النقاط المكتسبة</p>
+                                <p class="text-2xl font-bold" id="totalPoints">0</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Welcome Message -->
+                <div class="bg-white p-4 rounded-xl shadow-lg mb-4">
+                    <div class="text-center">
+                        <div class="text-3xl mb-2">👋</div>
+                        <h3 class="text-lg font-bold text-gray-800 mb-2">مرحباً بك في موروكس!</h3>
+                        <p class="text-sm text-gray-600">ابدأ رحلتك في تعلم الذكاء الاصطناعي</p>
+                    </div>
+                </div>
+
+                <!-- Quick Actions -->
+                <div class="bg-white p-4 rounded-xl shadow-lg">
+                    <h3 class="text-lg font-bold text-gray-800 mb-3">الإجراءات السريعة</h3>
+                    <div class="grid grid-cols-2 gap-3">
+                        <button onclick="showSection('courses')" class="bg-blue-50 text-blue-600 p-3 rounded-lg text-center active:scale-95 transition-all">
+                            <i class="fas fa-graduation-cap text-xl mb-1"></i>
+                            <p class="text-sm font-semibold">تصفح الدورات</p>
+                        </button>
+                        <button onclick="showSection('quiz')" class="bg-green-50 text-green-600 p-3 rounded-lg text-center active:scale-95 transition-all">
+                            <i class="fas fa-question-circle text-xl mb-1"></i>
+                            <p class="text-sm font-semibold">ابدأ اختبار</p>
+                        </button>
+                        <button onclick="showSection('certificates')" class="bg-purple-50 text-purple-600 p-3 rounded-lg text-center active:scale-95 transition-all">
+                            <i class="fas fa-certificate text-xl mb-1"></i>
+                            <p class="text-sm font-semibold">شهاداتي</p>
+                        </button>
+                        <button onclick="showSection('chat')" class="bg-orange-50 text-orange-600 p-3 rounded-lg text-center active:scale-95 transition-all">
+                            <i class="fas fa-comments text-xl mb-1"></i>
+                            <p class="text-sm font-semibold">الدردشة</p>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Courses Section -->
+        <section id="coursesSection" class="py-4 hidden">
+            <div class="px-4">
+                <h2 class="text-xl font-bold text-gray-800 mb-4">الدورات التدريبية</h2>
+                
+                <div class="space-y-4" id="coursesList">
+                    <!-- Courses will be populated here -->
+                </div>
+            </div>
+        </section>
+
+        <!-- Course Details Section -->
+        <section id="courseDetailsSection" class="py-4 hidden">
+            <div class="px-4">
+                <button onclick="backToCourses()" class="mb-4 text-blue-600 flex items-center">
+                    <i class="fas fa-arrow-right ml-2"></i>العودة للدورات
+                </button>
+                
+                <div id="courseDetailsContent" class="bg-white rounded-xl shadow-lg overflow-hidden">
+                    <!-- Course details will be populated here -->
+                </div>
+            </div>
+        </section>
+
+        <!-- Course Registration Modal -->
+        <div id="courseRegistrationModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-center justify-center p-4">
+            <div class="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md">
+                <div class="text-center mb-6">
+                    <div class="text-4xl mb-3">📝</div>
+                    <h2 class="text-xl font-bold text-gray-800">تسجيل في الدورة</h2>
+                </div>
+                
+                <form id="courseRegistrationForm" class="space-y-4">
+                    <div>
+                        <label class="block text-gray-700 font-semibold mb-2 text-sm">سبب الاهتمام بالدورة</label>
+                        <textarea id="registrationReason" required rows="3"
+                                  class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-base"
+                                  placeholder="لماذا تريد الانضمام لهذه الدورة؟"></textarea>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-gray-700 font-semibold mb-2 text-sm">المستوى التعليمي</label>
+                        <select id="educationLevel" required 
+                                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-base">
+                            <option value="">اختر المستوى</option>
+                            <option value="ثانوي">ثانوي</option>
+                            <option value="جامعي">جامعي</option>
+                            <option value="دراسات عليا">دراسات عليا</option>
+                            <option value="أخرى">أخرى</option>
+                        </select>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-gray-700 font-semibold mb-2 text-sm">الخبرة السابقة</label>
+                        <select id="previousExperience" required 
+                                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-base">
+                            <option value="">اختر مستوى الخبرة</option>
+                            <option value="مبتدئ">مبتدئ</option>
+                            <option value="متوسط">متوسط</option>
+                            <option value="متقدم">متقدم</option>
+                        </select>
+                    </div>
+                    
+                    <div class="flex space-x-3 space-x-reverse">
+                        <button type="submit" 
+                                class="flex-1 bg-gradient-to-r from-green-600 to-blue-600 text-white py-3 rounded-lg font-semibold active:scale-95 transition-all">
+                            تأكيد التسجيل
+                        </button>
+                        <button type="button" onclick="hideCourseRegistration()"
+                                class="flex-1 bg-gray-500 text-white py-3 rounded-lg font-semibold active:scale-95 transition-all">
+                            إلغاء
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+                <!-- Course Reviews -->
+                <div class="mt-12 bg-white p-6 rounded-xl shadow-lg">
+                    <h3 class="text-2xl font-bold text-gray-800 mb-6">تقييمات الطلاب</h3>
+                    <div class="grid md:grid-cols-2 gap-6">
+                        <div class="border-r-4 border-blue-500 pr-4">
+                            <div class="flex items-center mb-2">
+                                <div class="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center text-white font-bold">أ</div>
+                                <div class="mr-3">
+                                    <p class="font-semibold">أحمد محمد</p>
+                                    <div class="flex text-yellow-400 text-sm">
+                                        <i class="fas fa-star"></i>
+                                        <i class="fas fa-star"></i>
+                                        <i class="fas fa-star"></i>
+                                        <i class="fas fa-star"></i>
+                                        <i class="fas fa-star"></i>
+                                    </div>
+                                </div>
+                            </div>
+                            <p class="text-gray-600">"دورة ممتازة ومفيدة جداً، تعلمت الكثير عن الذكاء الاصطناعي بطريقة بسيطة ومفهومة."</p>
+                        </div>
+                        
+                        <div class="border-r-4 border-green-500 pr-4">
+                            <div class="flex items-center mb-2">
+                                <div class="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center text-white font-bold">س</div>
+                                <div class="mr-3">
+                                    <p class="font-semibold">سارة أحمد</p>
+                                    <div class="flex text-yellow-400 text-sm">
+                                        <i class="fas fa-star"></i>
+                                        <i class="fas fa-star"></i>
+                                        <i class="fas fa-star"></i>
+                                        <i class="fas fa-star"></i>
+                                        <i class="fas fa-star"></i>
+                                    </div>
+                                </div>
+                            </div>
+                            <p class="text-gray-600">"المدرب موروكس رائع والمحتوى عملي ومفيد. أنصح بهذه الدورة لكل من يريد تعلم الذكاء الاصطناعي."</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Quiz Section -->
+        <section id="quizSection" class="py-8 hidden">
+            <div class="container mx-auto px-4">
+                <div id="quizList">
+                    <h2 class="text-3xl font-bold text-gray-800 mb-8">الاختبارات التفاعلية</h2>
+                    
+                    <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <div class="bg-white p-6 rounded-xl shadow-lg card-hover">
+                            <div class="text-4xl mb-4">🧠</div>
+                            <h3 class="text-xl font-bold text-gray-800 mb-2">اختبار أساسيات الذكاء الاصطناعي</h3>
+                            <p class="text-gray-600 mb-4">10 أسئلة • 15 دقيقة</p>
+                            <div class="flex items-center justify-between mb-4">
+                                <span class="text-sm text-green-600 font-semibold">مكتمل - 85%</span>
+                                <span class="text-sm text-gray-500">آخر محاولة: أمس</span>
+                            </div>
+                            <button onclick="startQuiz('ai-basics')" class="w-full bg-blue-500 text-white py-2 rounded-lg hover:bg-blue-600 transition-all">
+                                إعادة الاختبار
+                            </button>
+                        </div>
+                        
+                        <div class="bg-white p-6 rounded-xl shadow-lg card-hover">
+                            <div class="text-4xl mb-4">🤖</div>
+                            <h3 class="text-xl font-bold text-gray-800 mb-2">اختبار التعلم الآلي</h3>
+                            <p class="text-gray-600 mb-4">15 سؤال • 20 دقيقة</p>
+                            <div class="flex items-center justify-between mb-4">
+                                <span class="text-sm text-blue-600 font-semibold">متاح الآن</span>
+                                <span class="text-sm text-gray-500">جديد</span>
+                            </div>
+                            <button onclick="startQuiz('machine-learning')" class="w-full bg-green-500 text-white py-2 rounded-lg hover:bg-green-600 transition-all">
+                                بدء الاختبار
+                            </button>
+                        </div>
+                        
+                        <div class="bg-white p-6 rounded-xl shadow-lg card-hover opacity-75">
+                            <div class="text-4xl mb-4">🔒</div>
+                            <h3 class="text-xl font-bold text-gray-800 mb-2">اختبار الشبكات العصبية</h3>
+                            <p class="text-gray-600 mb-4">20 سؤال • 30 دقيقة</p>
+                            <div class="flex items-center justify-between mb-4">
+                                <span class="text-sm text-gray-500">مقفل</span>
+                                <span class="text-sm text-gray-500">يتطلب إكمال الدورة</span>
+                            </div>
+                            <button disabled class="w-full bg-gray-400 text-white py-2 rounded-lg cursor-not-allowed">
+                                غير متاح
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Quiz Interface -->
+                <div id="quizInterface" class="hidden">
+                    <div class="bg-white p-8 rounded-xl shadow-lg max-w-4xl mx-auto">
+                        <div class="flex items-center justify-between mb-6">
+                            <h3 id="quizTitle" class="text-2xl font-bold text-gray-800"></h3>
+                            <div class="flex items-center space-x-4 space-x-reverse">
+                                <span id="questionCounter" class="text-gray-600">السؤال 1 من 10</span>
+                                <div id="timer" class="bg-red-100 text-red-600 px-3 py-1 rounded-lg font-bold">15:00</div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-6">
+                            <div class="bg-gray-200 rounded-full h-2">
+                                <div id="quizProgress" class="bg-blue-500 h-2 rounded-full transition-all" style="width: 10%"></div>
+                            </div>
+                        </div>
+                        
+                        <div id="questionContainer" class="mb-8">
+                            <h4 id="questionText" class="text-xl font-semibold text-gray-800 mb-6"></h4>
+                            <div id="optionsContainer" class="space-y-3"></div>
+                        </div>
+                        
+                        <div class="flex justify-between">
+                            <button id="prevBtn" onclick="previousQuestion()" class="bg-gray-500 text-white px-6 py-2 rounded-lg hover:bg-gray-600 transition-all" disabled>
+                                السابق
+                            </button>
+                            <button id="nextBtn" onclick="nextQuestion()" class="bg-blue-500 text-white px-6 py-2 rounded-lg hover:bg-blue-600 transition-all">
+                                التالي
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Quiz Results -->
+                <div id="quizResults" class="hidden">
+                    <div class="bg-white p-8 rounded-xl shadow-lg max-w-2xl mx-auto text-center">
+                        <div class="text-6xl mb-6">🎉</div>
+                        <h3 class="text-3xl font-bold text-gray-800 mb-4">تهانينا!</h3>
+                        <p class="text-xl text-gray-600 mb-6">لقد أكملت الاختبار بنجاح</p>
+                        
+                        <div class="bg-gradient-to-r from-green-500 to-blue-500 text-white p-6 rounded-xl mb-6">
+                            <p class="text-lg mb-2">نتيجتك</p>
+                            <p id="finalScore" class="text-4xl font-bold">85%</p>
+                        </div>
+                        
+                        <div class="grid md:grid-cols-3 gap-4 mb-6">
+                            <div class="bg-green-50 p-4 rounded-lg">
+                                <p class="text-green-600 font-semibold">إجابات صحيحة</p>
+                                <p id="correctAnswers" class="text-2xl font-bold text-green-700">8</p>
+                            </div>
+                            <div class="bg-red-50 p-4 rounded-lg">
+                                <p class="text-red-600 font-semibold">إجابات خاطئة</p>
+                                <p id="wrongAnswers" class="text-2xl font-bold text-red-700">2</p>
+                            </div>
+                            <div class="bg-blue-50 p-4 rounded-lg">
+                                <p class="text-blue-600 font-semibold">النقاط المكتسبة</p>
+                                <p id="earnedPoints" class="text-2xl font-bold text-blue-700">85</p>
+                            </div>
+                        </div>
+                        
+                        <button onclick="backToQuizList()" class="bg-blue-500 text-white px-8 py-3 rounded-lg hover:bg-blue-600 transition-all">
+                            العودة للاختبارات
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Certificates Section -->
+        <section id="certificatesSection" class="py-8 hidden">
+            <div class="container mx-auto px-4">
+                <h2 class="text-3xl font-bold text-gray-800 mb-8">شهاداتي</h2>
+                
+                <div class="grid md:grid-cols-2 gap-8">
+                    <div class="certificate-bg p-8 rounded-xl text-white shadow-2xl">
+                        <div class="text-center">
+                            <div class="text-4xl mb-4">🏆</div>
+                            <h3 class="text-2xl font-bold mb-2">شهادة إتمام</h3>
+                            <h4 class="text-xl mb-4">أساسيات الذكاء الاصطناعي</h4>
+                            <p class="mb-4">هذا يشهد أن</p>
+                            <p id="certName1" class="text-2xl font-bold mb-4"></p>
+                            <p class="mb-4">قد أكمل بنجاح دورة أساسيات الذكاء الاصطناعي</p>
+                            <p class="text-sm">تاريخ الإصدار: 15 نوفمبر 2024</p>
+                            <div class="mt-6">
+                                <button onclick="downloadCertificate('ai-basics')" class="bg-white text-purple-600 px-6 py-2 rounded-lg hover:bg-gray-100 transition-all">
+                                    تحميل الشهادة
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-gradient-to-br from-blue-600 to-purple-600 p-8 rounded-xl text-white shadow-2xl">
+                        <div class="text-center">
+                            <div class="text-4xl mb-4">🎖️</div>
+                            <h3 class="text-2xl font-bold mb-2">شهادة تميز</h3>
+                            <h4 class="text-xl mb-4">التعلم الآلي المتقدم</h4>
+                            <p class="mb-4">هذا يشهد أن</p>
+                            <p id="certName2" class="text-2xl font-bold mb-4"></p>
+                            <p class="mb-4">قد حقق درجة امتياز في دورة التعلم الآلي</p>
+                            <p class="text-sm">تاريخ الإصدار: 10 نوفمبر 2024</p>
+                            <div class="mt-6">
+                                <button onclick="downloadCertificate('machine-learning')" class="bg-white text-blue-600 px-6 py-2 rounded-lg hover:bg-gray-100 transition-all">
+                                    تحميل الشهادة
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Certificate Generator -->
+                <div class="mt-12 bg-white p-6 rounded-xl shadow-lg">
+                    <h3 class="text-2xl font-bold text-gray-800 mb-6">إنشاء شهادة جديدة</h3>
+                    <div class="grid md:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-gray-700 font-semibold mb-2">اختر الدورة</label>
+                            <select id="courseSelect" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                                <option value="">اختر دورة</option>
+                                <option value="ai-students">مهارات الذكاء الاصطناعي للطلاب</option>
+                                <option value="virtual-character">تصميم شخصية افتراضية</option>
+                                <option value="ai-designers">الذكاء الاصطناعي للمصممين</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-gray-700 font-semibold mb-2">نوع الشهادة</label>
+                            <select id="certType" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                                <option value="completion">شهادة إتمام</option>
+                                <option value="excellence">شهادة تميز</option>
+                                <option value="participation">شهادة مشاركة</option>
+                            </select>
+                        </div>
+                    </div>
+                    <button onclick="generateCertificate()" class="mt-4 bg-green-500 text-white px-6 py-2 rounded-lg hover:bg-green-600 transition-all">
+                        إنشاء الشهادة
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Chat Section -->
+        <section id="chatSection" class="py-8 hidden">
+            <div class="container mx-auto px-4">
+                <div class="bg-white rounded-xl shadow-lg h-96 flex flex-col">
+                    <div class="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-4 rounded-t-xl">
+                        <div class="flex items-center">
+                            <div class="text-2xl ml-3">🤖</div>
+                            <div>
+                                <h3 class="font-bold">موروكس - المساعد الذكي</h3>
+                                <p class="text-sm text-blue-100">متصل الآن</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div id="chatMessages" class="flex-1 p-4 overflow-y-auto space-y-4">
+                        <div class="flex items-start">
+                            <div class="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white text-sm font-bold ml-2">م</div>
+                            <div class="bg-blue-50 p-3 rounded-lg max-w-xs">
+                                <p class="text-gray-800">مرحباً! أنا موروكس، مساعدك الذكي. كيف يمكنني مساعدتك اليوم؟</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="p-4 border-t">
+                        <div class="flex space-x-2 space-x-reverse">
+                            <input type="text" id="chatInput" placeholder="اكتب رسالتك هنا..." 
+                                   class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                   onkeypress="handleChatKeyPress(event)">
+                            <button onclick="sendMessage()" class="bg-blue-500 text-white px-6 py-2 rounded-lg hover:bg-blue-600 transition-all">
+                                إرسال
+                            </button>
+                        </div>
+                        
+                        <!-- Quick Responses -->
+                        <div class="mt-3 flex flex-wrap gap-2">
+                            <button onclick="sendQuickMessage('ما هي الدورات المتاحة؟')" class="bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-sm hover:bg-gray-200 transition-all">
+                                الدورات المتاحة
+                            </button>
+                            <button onclick="sendQuickMessage('كيف أحصل على شهادة؟')" class="bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-sm hover:bg-gray-200 transition-all">
+                                الحصول على شهادة
+                            </button>
+                            <button onclick="sendQuickMessage('ما هو تقدمي في التعلم؟')" class="bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-sm hover:bg-gray-200 transition-all">
+                                تقدمي في التعلم
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- WhatsApp CTA -->
+        <section class="py-12 gradient-bg">
+            <div class="container mx-auto px-4 text-center">
+                <div class="text-4xl mb-6">💬</div>
+                <h3 class="text-3xl font-bold text-white mb-6">انضم إلى مجتمع موروكس</h3>
+                <p class="text-lg text-white/90 mb-8 max-w-2xl mx-auto">
+                    انضم إلى قناة واتساب الرسمية للمنصة للحصول على آخر التحديثات والتسجيل في الدورات
+                </p>
+                <a href="https://chat.whatsapp.com/FJnj4j3bMhJ15d7XhUBmgl?mode=ac_t" target="_blank"
+                   class="inline-flex items-center bg-green-500 hover:bg-green-600 text-white px-8 py-4 rounded-2xl text-xl font-bold transition-all transform hover:scale-105 shadow-2xl">
+                    <i class="fab fa-whatsapp text-2xl ml-3"></i>
+                    انضم إلى قناة واتساب
+                </a>
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <footer class="bg-gray-800 text-white py-8">
+            <div class="container mx-auto px-4 text-center">
+                <div class="text-3xl mb-4">🤖</div>
+                <h4 class="text-xl font-bold mb-4">منصة موروكس التعليمية</h4>
+                <p class="text-gray-400 mb-6">تدريب مهارات الذكاء الاصطناعي بأسلوب ممتع وبسيط</p>
+                
+                <div class="flex justify-center space-x-6 space-x-reverse mb-6">
+                    <a href="https://www.facebook.com/share/1GmdvSKcuU/" target="_blank" 
+                       class="text-gray-400 hover:text-white transition-all">
+                        <i class="fab fa-facebook-f text-xl"></i>
+                    </a>
+                    <a href="https://www.instagram.com/morox732?igsh=ajBlbW1jdHpweTdu" target="_blank" 
+                       class="text-gray-400 hover:text-white transition-all">
+                        <i class="fab fa-instagram text-xl"></i>
+                    </a>
+                    <a href="https://youtube.com/@morox732?si=IXRA6Jv8ut7L5Bvb" target="_blank" 
+                       class="text-gray-400 hover:text-white transition-all">
+                        <i class="fab fa-youtube text-xl"></i>
+                    </a>
+                </div>
+                
+                <p class="text-gray-500">© 2024 منصة موروكس التعليمية. جميع الحقوق محفوظة.</p>
+            </div>
+        </footer>
+    </div>
+
+    <script>
+        // Global Variables
+        let currentUser = null;
+        let isAdmin = false;
+        let currentQuiz = null;
+        let currentQuestionIndex = 0;
+        let quizAnswers = [];
+        let quizTimer = null;
+        let timeRemaining = 0;
+        let userStats = {
+            completedCourses: 0,
+            earnedCertificates: 0,
+            studyHours: 0,
+            totalPoints: 0
+        };
+
+        // Platform Data
+        let platformData = {
+            courses: [
+                {
+                    id: 'ai-students',
+                    title: 'مهارات الذكاء الاصطناعي للطلاب',
+                    description: 'تعلم أساسيات وتطبيقات الذكاء الاصطناعي بطريقة مبسطة وممتعة',
+                    details: 'دورة شاملة تغطي أساسيات الذكاء الاصطناعي والتعلم الآلي مع تطبيقات عملية',
+                    lessons: 12,
+                    hours: 8,
+                    price: 299,
+                    icon: '🎓',
+                    color: 'blue'
+                },
+                {
+                    id: 'virtual-character',
+                    title: 'تصميم شخصية افتراضية',
+                    description: 'إنشاء وتطوير شخصيات ذكية تفاعلية',
+                    details: 'تعلم كيفية تصميم وبرمجة شخصيات افتراضية ذكية باستخدام أحدث التقنيات',
+                    lessons: 8,
+                    hours: 6,
+                    price: 199,
+                    icon: '🎭',
+                    color: 'green'
+                },
+                {
+                    id: 'ai-designers',
+                    title: 'الذكاء الاصطناعي للمصممين',
+                    description: 'تصميم إبداعي بأدوات الذكاء الاصطناعي',
+                    details: 'استخدم أدوات الذكاء الاصطناعي في التصميم الجرافيكي وإنتاج المحتوى الإبداعي',
+                    lessons: 10,
+                    hours: 7,
+                    price: 249,
+                    icon: '🎨',
+                    color: 'purple'
+                }
+            ],
+            registrations: [],
+            announcements: [
+                {
+                    id: 1,
+                    title: 'مرحباً بكم في منصة موروكس',
+                    content: 'نرحب بجميع الطلاب الجدد في منصة موروكس التعليمية',
+                    type: 'info',
+                    active: true
+                }
+            ],
+            users: [],
+            settings: {
+                platformName: 'منصة موروكس التعليمية',
+                platformDescription: 'منصة تدريب مهارات الذكاء الاصطناعي',
+                socialLinks: {
+                    facebook: 'https://www.facebook.com/share/1GmdvSKcuU/',
+                    instagram: 'https://www.instagram.com/morox732?igsh=ajBlbW1jdHpweTdu',
+                    youtube: 'https://youtube.com/@morox732?si=IXRA6Jv8ut7L5Bvb',
+                    whatsapp: 'https://chat.whatsapp.com/FJnj4j3bMhJ15d7XhUBmgl?mode=ac_t'
+                }
+            }
+        };
+
+        // Dynamic Quiz Data
+        let quizData = {};
+
+        // Initialize Application
+        window.addEventListener('load', function() {
+            loadPlatformData();
+            
+            const savedName = localStorage.getItem('studentName');
+            if (savedName) {
+                currentUser = {
+                    name: savedName,
+                    phone: localStorage.getItem('studentPhone'),
+                    email: localStorage.getItem('studentEmail')
+                };
+                
+                const savedStats = localStorage.getItem('userStats');
+                if (savedStats) {
+                    userStats = JSON.parse(savedStats);
+                }
+                
+                document.getElementById('loginScreen').classList.add('hidden');
+                document.getElementById('mainWebsite').classList.remove('hidden');
+                updateCertificateNames();
+                updateStatsDisplay();
+                loadQuizData();
+                displayCourses();
+                showActiveAnnouncements();
+            }
+        });
+
+        // Admin System
+        function showAdminLogin() {
+            document.getElementById('adminLoginModal').classList.remove('hidden');
+        }
+
+        function hideAdminLogin() {
+            document.getElementById('adminLoginModal').classList.add('hidden');
+            document.getElementById('adminLoginForm').reset();
+        }
+
+        document.getElementById('adminLoginForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const username = document.getElementById('adminUsername').value;
+            const password = document.getElementById('adminPassword').value;
+            
+            // Simple admin authentication (in real app, use secure authentication)
+            if (username === 'Bashar' && password === 'bbsshhaarr6405') {
+                isAdmin = true;
+                hideAdminLogin();
+                document.getElementById('loginScreen').classList.add('hidden');
+                document.getElementById('adminPanel').classList.remove('hidden');
+                loadAdminData();
+                showNotification('تم تسجيل دخول المدير بنجاح!', 'success');
+            } else {
+                showNotification('بيانات تسجيل الدخول غير صحيحة', 'error');
+            }
+        });
+
+        function logoutAdmin() {
+            isAdmin = false;
+            document.getElementById('adminPanel').classList.add('hidden');
+            document.getElementById('loginScreen').classList.remove('hidden');
+            showNotification('تم تسجيل خروج المدير', 'info');
+        }
+
+        function showAdminSection(section) {
+            // Hide all admin sections
+            const sections = ['adminCoursesSection', 'adminAnnouncementsSection', 'adminUsersSection', 'adminSettingsSection'];
+            sections.forEach(s => {
+                const element = document.getElementById(s);
+                if (element) element.classList.add('hidden');
+            });
+            
+            // Show selected section
+            const targetSection = document.getElementById('admin' + section.charAt(0).toUpperCase() + section.slice(1) + 'Section');
+            if (targetSection) {
+                targetSection.classList.remove('hidden');
+            }
+        }
+
+        function loadAdminData() {
+            loadAdminCourses();
+            loadAdminAnnouncements();
+            loadAdminUsers();
+            loadAdminSettings();
+        }
+
+        // Admin Courses Management
+        function loadAdminCourses() {
+            const coursesList = document.getElementById('adminCoursesList');
+            coursesList.innerHTML = '';
+            
+            platformData.courses.forEach(course => {
+                const registrationsCount = platformData.registrations.filter(reg => reg.courseId === course.id).length;
+                const courseDiv = document.createElement('div');
+                courseDiv.className = 'bg-white/10 rounded-lg p-4 flex items-center justify-between';
+                courseDiv.innerHTML = `
+                    <div class="flex items-center">
+                        <div class="text-2xl ml-3">${course.icon}</div>
+                        <div>
+                            <h4 class="text-white font-semibold">${course.title}</h4>
+                            <p class="text-white/70 text-sm">${course.lessons} دروس • ${course.hours} ساعات • ${course.price} ريال</p>
+                            <p class="text-white/70 text-xs">${registrationsCount} طالب مسجل</p>
+                        </div>
+                    </div>
+                    <div class="flex space-x-2 space-x-reverse">
+                        <button onclick="editCourse('${course.id}')" class="bg-blue-500 text-white px-3 py-1 rounded text-sm">
+                            تعديل
+                        </button>
+                        <button onclick="deleteCourse('${course.id}')" class="bg-red-500 text-white px-3 py-1 rounded text-sm">
+                            حذف
+                        </button>
+                    </div>
+                `;
+                coursesList.appendChild(courseDiv);
+            });
+
+            // Load course registrations
+            loadCourseRegistrations();
+        }
+
+        function loadCourseRegistrations() {
+            const registrationsList = document.getElementById('courseRegistrationsList');
+            registrationsList.innerHTML = '';
+            
+            if (platformData.registrations.length === 0) {
+                registrationsList.innerHTML = '<p class="text-white/70 text-center">لا توجد تسجيلات حتى الآن</p>';
+                return;
+            }
+            
+            platformData.registrations.forEach(registration => {
+                const course = platformData.courses.find(c => c.id === registration.courseId);
+                const registrationDiv = document.createElement('div');
+                registrationDiv.className = 'bg-white/10 rounded-lg p-4';
+                registrationDiv.innerHTML = `
+                    <div class="flex items-center justify-between mb-2">
+                        <div>
+                            <h4 class="text-white font-semibold">${registration.studentName}</h4>
+                            <p class="text-white/70 text-sm">${registration.email} • ${registration.phone}</p>
+                        </div>
+                        <button onclick="deleteRegistration('${registration.id}')" class="bg-red-500 text-white px-3 py-1 rounded text-sm">
+                            حذف
+                        </button>
+                    </div>
+                    <div class="text-white/70 text-sm">
+                        <p><strong>الدورة:</strong> ${course ? course.title : 'غير محدد'}</p>
+                        <p><strong>المستوى التعليمي:</strong> ${registration.educationLevel}</p>
+                        <p><strong>الخبرة:</strong> ${registration.previousExperience}</p>
+                        <p><strong>سبب الاهتمام:</strong> ${registration.reason}</p>
+                        <p><strong>تاريخ التسجيل:</strong> ${new Date(registration.registrationDate).toLocaleDateString('ar')}</p>
+                    </div>
+                `;
+                registrationsList.appendChild(registrationDiv);
+            });
+        }
+
+        function deleteRegistration(registrationId) {
+            if (confirm('هل أنت متأكد من حذف هذا التسجيل؟')) {
+                platformData.registrations = platformData.registrations.filter(reg => reg.id !== registrationId);
+                savePlatformData();
+                loadCourseRegistrations();
+                loadAdminCourses(); // Refresh to update registration counts
+                showNotification('تم حذف التسجيل بنجاح!', 'success');
+            }
+        }
+
+        function addNewCourse() {
+            const title = document.getElementById('newCourseTitle').value;
+            const description = document.getElementById('newCourseDescription').value;
+            const details = document.getElementById('newCourseDetails').value;
+            const lessons = parseInt(document.getElementById('newCourseLessons').value);
+            const hours = parseInt(document.getElementById('newCourseHours').value);
+            const price = parseInt(document.getElementById('newCoursePrice').value);
+            const icon = document.getElementById('newCourseIcon').value;
+            const color = document.getElementById('newCourseColor').value;
+            
+            if (title && description && details && lessons && hours && price) {
+                const newCourse = {
+                    id: 'course-' + Date.now(),
+                    title,
+                    description,
+                    details,
+                    lessons,
+                    hours,
+                    price,
+                    icon,
+                    color
+                };
+                
+                platformData.courses.push(newCourse);
+                savePlatformData();
+                loadAdminCourses();
+                displayCourses();
+                
+                // Clear form
+                document.getElementById('newCourseTitle').value = '';
+                document.getElementById('newCourseDescription').value = '';
+                document.getElementById('newCourseDetails').value = '';
+                document.getElementById('newCourseLessons').value = '';
+                document.getElementById('newCourseHours').value = '';
+                document.getElementById('newCoursePrice').value = '';
+                
+                showNotification('تم إضافة الدورة بنجاح!', 'success');
+            } else {
+                showNotification('يرجى ملء جميع الحقول', 'error');
+            }
+        }
+
+        function editCourse(courseId) {
+            const course = platformData.courses.find(c => c.id === courseId);
+            if (course) {
+                document.getElementById('newCourseTitle').value = course.title;
+                document.getElementById('newCourseDescription').value = course.description;
+                document.getElementById('newCourseDetails').value = course.details || '';
+                document.getElementById('newCourseLessons').value = course.lessons;
+                document.getElementById('newCourseHours').value = course.hours;
+                document.getElementById('newCoursePrice').value = course.price || 0;
+                document.getElementById('newCourseIcon').value = course.icon;
+                document.getElementById('newCourseColor').value = course.color;
+                
+                // Change button to update mode
+                const addButton = document.querySelector('button[onclick="addNewCourse()"]');
+                addButton.textContent = 'تحديث الدورة';
+                addButton.setAttribute('onclick', `updateCourse('${courseId}')`);
+                
+                showNotification('يمكنك الآن تعديل بيانات الدورة', 'info');
+            }
+        }
+
+        function updateCourse(courseId) {
+            const title = document.getElementById('newCourseTitle').value;
+            const description = document.getElementById('newCourseDescription').value;
+            const details = document.getElementById('newCourseDetails').value;
+            const lessons = parseInt(document.getElementById('newCourseLessons').value);
+            const hours = parseInt(document.getElementById('newCourseHours').value);
+            const price = parseInt(document.getElementById('newCoursePrice').value);
+            const icon = document.getElementById('newCourseIcon').value;
+            const color = document.getElementById('newCourseColor').value;
+            
+            if (title && description && details && lessons && hours && price) {
+                const courseIndex = platformData.courses.findIndex(c => c.id === courseId);
+                if (courseIndex !== -1) {
+                    platformData.courses[courseIndex] = {
+                        id: courseId,
+                        title,
+                        description,
+                        details,
+                        lessons,
+                        hours,
+                        price,
+                        icon,
+                        color
+                    };
+                    
+                    savePlatformData();
+                    loadAdminCourses();
+                    displayCourses();
+                    
+                    // Reset form and button
+                    document.getElementById('newCourseTitle').value = '';
+                    document.getElementById('newCourseDescription').value = '';
+                    document.getElementById('newCourseDetails').value = '';
+                    document.getElementById('newCourseLessons').value = '';
+                    document.getElementById('newCourseHours').value = '';
+                    document.getElementById('newCoursePrice').value = '';
+                    
+                    const updateButton = document.querySelector('button[onclick*="updateCourse"]');
+                    updateButton.textContent = 'إضافة الدورة';
+                    updateButton.setAttribute('onclick', 'addNewCourse()');
+                    
+                    showNotification('تم تحديث الدورة بنجاح!', 'success');
+                }
+            } else {
+                showNotification('يرجى ملء جميع الحقول', 'error');
+            }
+        }
+
+        function deleteCourse(courseId) {
+            if (confirm('هل أنت متأكد من حذف هذه الدورة؟')) {
+                platformData.courses = platformData.courses.filter(course => course.id !== courseId);
+                savePlatformData();
+                loadAdminCourses();
+                displayCourses();
+                showNotification('تم حذف الدورة بنجاح!', 'success');
+            }
+        }
+
+        // Admin Announcements Management
+        function loadAdminAnnouncements() {
+            const announcementsList = document.getElementById('adminAnnouncementsList');
+            announcementsList.innerHTML = '';
+            
+            platformData.announcements.forEach(announcement => {
+                const announcementDiv = document.createElement('div');
+                announcementDiv.className = 'bg-white/10 rounded-lg p-4';
+                announcementDiv.innerHTML = `
+                    <div class="flex items-center justify-between mb-2">
+                        <h4 class="text-white font-semibold">${announcement.title}</h4>
+                        <div class="flex space-x-2 space-x-reverse">
+                            <button onclick="toggleAnnouncement(${announcement.id})" class="bg-${announcement.active ? 'green' : 'gray'}-500 text-white px-3 py-1 rounded text-sm">
+                                ${announcement.active ? 'نشط' : 'معطل'}
+                            </button>
+                            <button onclick="deleteAnnouncement(${announcement.id})" class="bg-red-500 text-white px-3 py-1 rounded text-sm">
+                                حذف
+                            </button>
+                        </div>
+                    </div>
+                    <p class="text-white/70 text-sm">${announcement.content}</p>
+                    <span class="inline-block mt-2 px-2 py-1 bg-${announcement.type === 'info' ? 'blue' : announcement.type === 'success' ? 'green' : announcement.type === 'warning' ? 'yellow' : 'red'}-500 text-white text-xs rounded">
+                        ${announcement.type}
+                    </span>
+                `;
+                announcementsList.appendChild(announcementDiv);
+            });
+        }
+
+        function addNewAnnouncement() {
+            const title = document.getElementById('newAnnouncementTitle').value;
+            const content = document.getElementById('newAnnouncementContent').value;
+            const type = document.getElementById('newAnnouncementType').value;
+            
+            if (title && content) {
+                const newAnnouncement = {
+                    id: Date.now(),
+                    title,
+                    content,
+                    type,
+                    active: true
+                };
+                
+                platformData.announcements.push(newAnnouncement);
+                savePlatformData();
+                loadAdminAnnouncements();
+                showActiveAnnouncements();
+                
+                // Clear form
+                document.getElementById('newAnnouncementTitle').value = '';
+                document.getElementById('newAnnouncementContent').value = '';
+                
+                showNotification('تم إضافة الإعلان بنجاح!', 'success');
+            } else {
+                showNotification('يرجى ملء جميع الحقول', 'error');
+            }
+        }
+
+        function deleteAnnouncement(announcementId) {
+            if (confirm('هل أنت متأكد من حذف هذا الإعلان؟')) {
+                platformData.announcements = platformData.announcements.filter(announcement => announcement.id !== announcementId);
+                savePlatformData();
+                loadAdminAnnouncements();
+                showActiveAnnouncements();
+                showNotification('تم حذف الإعلان بنجاح!', 'success');
+            }
+        }
+
+        function toggleAnnouncement(announcementId) {
+            const announcement = platformData.announcements.find(a => a.id === announcementId);
+            if (announcement) {
+                announcement.active = !announcement.active;
+                savePlatformData();
+                loadAdminAnnouncements();
+                showActiveAnnouncements();
+                showNotification(`تم ${announcement.active ? 'تفعيل' : 'إلغاء'} الإعلان`, 'success');
+            }
+        }
+
+        // Admin Users Management
+        function loadAdminUsers() {
+            const usersList = document.getElementById('adminUsersList');
+            const totalUsersElement = document.getElementById('totalUsers');
+            const activeUsersElement = document.getElementById('activeUsers');
+            
+            usersList.innerHTML = '';
+            
+            // Get users from localStorage (in real app, this would be from database)
+            const users = JSON.parse(localStorage.getItem('allUsers') || '[]');
+            
+            totalUsersElement.textContent = users.length;
+            activeUsersElement.textContent = users.filter(user => user.lastActive && new Date(user.lastActive) > new Date(Date.now() - 24*60*60*1000)).length;
+            
+            users.forEach(user => {
+                const userDiv = document.createElement('div');
+                userDiv.className = 'bg-white/10 rounded-lg p-4 flex items-center justify-between';
+                userDiv.innerHTML = `
+                    <div>
+                        <h4 class="text-white font-semibold">${user.name}</h4>
+                        <p class="text-white/70 text-sm">${user.email}</p>
+                        <p class="text-white/70 text-sm">${user.phone}</p>
+                    </div>
+                    <div class="text-white/70 text-sm">
+                        ${user.lastActive ? new Date(user.lastActive).toLocaleDateString('ar') : 'لم يسجل دخول'}
+                    </div>
+                `;
+                usersList.appendChild(userDiv);
+            });
+        }
+
+        // Admin Settings Management
+        function loadAdminSettings() {
+            document.getElementById('platformName').value = platformData.settings.platformName;
+            document.getElementById('platformDescription').value = platformData.settings.platformDescription;
+            document.getElementById('facebookLink').value = platformData.settings.socialLinks.facebook;
+            document.getElementById('instagramLink').value = platformData.settings.socialLinks.instagram;
+            document.getElementById('youtubeLink').value = platformData.settings.socialLinks.youtube;
+            document.getElementById('whatsappLink').value = platformData.settings.socialLinks.whatsapp;
+        }
+
+        function saveSettings() {
+            platformData.settings.platformName = document.getElementById('platformName').value;
+            platformData.settings.platformDescription = document.getElementById('platformDescription').value;
+            platformData.settings.socialLinks.facebook = document.getElementById('facebookLink').value;
+            platformData.settings.socialLinks.instagram = document.getElementById('instagramLink').value;
+            platformData.settings.socialLinks.youtube = document.getElementById('youtubeLink').value;
+            platformData.settings.socialLinks.whatsapp = document.getElementById('whatsappLink').value;
+            
+            savePlatformData();
+            showNotification('تم حفظ الإعدادات بنجاح!', 'success');
+        }
+
+        function exportData() {
+            const dataStr = JSON.stringify(platformData, null, 2);
+            const dataBlob = new Blob([dataStr], {type: 'application/json'});
+            const url = URL.createObjectURL(dataBlob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = 'morox-platform-data.json';
+            link.click();
+            showNotification('تم تصدير البيانات بنجاح!', 'success');
+        }
+
+        function importData() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.json';
+            input.onchange = function(e) {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        try {
+                            const importedData = JSON.parse(e.target.result);
+                            platformData = importedData;
+                            savePlatformData();
+                            loadAdminData();
+                            displayCourses();
+                            showActiveAnnouncements();
+                            showNotification('تم استيراد البيانات بنجاح!', 'success');
+                        } catch (error) {
+                            showNotification('خطأ في تحليل ملف البيانات', 'error');
+                        }
+                    };
+                    reader.readAsText(file);
+                }
+            };
+            input.click();
+        }
+
+        function resetData() {
+            if (confirm('هل أنت متأكد من إعادة تعيين جميع البيانات؟ هذا الإجراء لا يمكن التراجع عنه.')) {
+                localStorage.clear();
+                location.reload();
+            }
+        }
+
+        // Data Management
+        function savePlatformData() {
+            localStorage.setItem('platformData', JSON.stringify(platformData));
+        }
+
+        function loadPlatformData() {
+            const savedData = localStorage.getItem('platformData');
+            if (savedData) {
+                platformData = JSON.parse(savedData);
+            }
+        }
+
+        // Display Functions
+        function displayCourses() {
+            const coursesList = document.getElementById('coursesList');
+            if (!coursesList) return;
+            
+            coursesList.innerHTML = '';
+            
+            platformData.courses.forEach(course => {
+                const courseDiv = document.createElement('div');
+                courseDiv.className = 'card-hover bg-white rounded-xl shadow-lg overflow-hidden';
+                courseDiv.innerHTML = `
+                    <div class="bg-gradient-to-r from-${course.color}-500 to-${course.color}-600 p-4 text-white">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center">
+                                <div class="text-3xl ml-3">${course.icon}</div>
+                                <div class="flex-1">
+                                    <h3 class="text-lg font-bold">${course.title}</h3>
+                                    <p class="text-${course.color}-100 text-sm">${course.lessons} درس • ${course.hours} ساعات</p>
+                                </div>
+                            </div>
+                            <div class="text-left">
+                                <p class="text-2xl font-bold">${course.price}</p>
+                                <p class="text-${course.color}-100 text-xs">ريال</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="p-4">
+                        <p class="text-gray-600 text-sm mb-3">${course.description}</p>
+                        <div class="flex items-center justify-between mb-3">
+                            <span class="text-xs text-gray-500">التقدم: 0%</span>
+                            <div class="flex text-yellow-400 text-sm">
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                            </div>
+                        </div>
+                        <div class="flex-1 bg-gray-200 rounded-full h-2 mb-3">
+                            <div class="bg-${course.color}-500 h-2 rounded-full" style="width: 0%"></div>
+                        </div>
+                        <button onclick="showCourseDetails('${course.id}')" class="w-full bg-${course.color}-500 text-white py-3 rounded-lg active:scale-95 transition-all">
+                            عرض التفاصيل
+                        </button>
+                    </div>
+                `;
+                coursesList.appendChild(courseDiv);
+            });
+        }
+
+        function showActiveAnnouncements() {
+            const activeAnnouncements = platformData.announcements.filter(a => a.active);
+            if (activeAnnouncements.length > 0) {
+                const banner = document.getElementById('announcementsBanner');
+                const text = document.getElementById('announcementText');
+                
+                // Show first active announcement
+                const announcement = activeAnnouncements[0];
+                text.textContent = announcement.title + ': ' + announcement.content;
+                
+                // Set banner color based on type
+                banner.className = `bg-${announcement.type === 'info' ? 'blue' : announcement.type === 'success' ? 'green' : announcement.type === 'warning' ? 'yellow' : 'red'}-500 text-white py-2 px-4 text-center`;
+                banner.classList.remove('hidden');
+            }
+        }
+
+        function hideAnnouncement() {
+            document.getElementById('announcementsBanner').classList.add('hidden');
+        }
+
+        // Login System
+        document.getElementById('loginForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const name = document.getElementById('studentName').value;
+            const phone = document.getElementById('studentPhone').value;
+            const email = document.getElementById('studentEmail').value;
+            
+            if (name && phone && email) {
+                currentUser = { name, phone, email, lastActive: new Date().toISOString() };
+                
+                // Store user data
+                localStorage.setItem('studentName', name);
+                localStorage.setItem('studentPhone', phone);
+                localStorage.setItem('studentEmail', email);
+                
+                // Add to users list
+                const allUsers = JSON.parse(localStorage.getItem('allUsers') || '[]');
+                const existingUserIndex = allUsers.findIndex(user => user.email === email);
+                if (existingUserIndex >= 0) {
+                    allUsers[existingUserIndex] = currentUser;
+                } else {
+                    allUsers.push(currentUser);
+                }
+                localStorage.setItem('allUsers', JSON.stringify(allUsers));
+                
+                // Show main website
+                document.getElementById('loginScreen').classList.add('hidden');
+                document.getElementById('mainWebsite').classList.remove('hidden');
+                
+                updateCertificateNames();
+                updateStatsDisplay();
+                loadQuizData();
+                displayCourses();
+                showActiveAnnouncements();
+                showNotification('تم تسجيل الدخول بنجاح!', 'success');
+                
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+        });
+
+        // Navigation System
+        function showSection(sectionName) {
+            const sections = ['dashboardSection', 'coursesSection', 'courseDetailsSection', 'quizSection', 'certificatesSection', 'chatSection'];
+            sections.forEach(section => {
+                const element = document.getElementById(section);
+                if (element) {
+                    element.classList.add('hidden');
+                }
+            });
+            
+            const targetSection = document.getElementById(sectionName + 'Section');
+            if (targetSection) {
+                targetSection.classList.remove('hidden');
+            }
+            
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                btn.classList.remove('text-blue-600', 'font-bold');
+                btn.classList.add('text-gray-700');
+            });
+            
+            const clickedButton = Array.from(document.querySelectorAll('.nav-btn')).find(btn => 
+                btn.textContent.includes(getSectionTitle(sectionName))
+            );
+            
+            if (clickedButton) {
+                clickedButton.classList.remove('text-gray-700');
+                clickedButton.classList.add('text-blue-600', 'font-bold');
+            }
+        }
+
+        function getSectionTitle(sectionName) {
+            const titles = {
+                'dashboard': 'لوحة التحكم',
+                'courses': 'الدورات',
+                'quiz': 'الاختبارات',
+                'certificates': 'الشهادات',
+                'chat': 'الدردشة'
+            };
+            return titles[sectionName] || '';
+        }
+
+        // Notification System
+        function showNotification(message, type = 'info') {
+            const notification = document.createElement('div');
+            notification.className = `notification bg-${type === 'success' ? 'green' : type === 'error' ? 'red' : 'blue'}-500 text-white px-6 py-3 rounded-lg shadow-lg`;
+            notification.textContent = message;
+            
+            document.getElementById('notifications').appendChild(notification);
+            
+            setTimeout(() => {
+                notification.remove();
+            }, 3000);
+        }
+
+        function toggleNotifications() {
+            showNotification('مرحباً بك في منصة موروكس!', 'info');
+        }
+
+        // Update Stats Display
+        function updateStatsDisplay() {
+            document.getElementById('completedCourses').textContent = userStats.completedCourses;
+            document.getElementById('earnedCertificates').textContent = userStats.earnedCertificates;
+            document.getElementById('studyHours').textContent = userStats.studyHours;
+            document.getElementById('totalPoints').textContent = userStats.totalPoints;
+        }
+
+        // Save User Stats
+        function saveUserStats() {
+            localStorage.setItem('userStats', JSON.stringify(userStats));
+        }
+
+        // Load Quiz Data
+        function loadQuizData() {
+            quizData = {
+                'ai-basics': {
+                    title: 'اختبار أساسيات الذكاء الاصطناعي',
+                    timeLimit: 15,
+                    questions: [
+                        {
+                            question: 'ما هو الذكاء الاصطناعي؟',
+                            options: [
+                                'برنامج كمبيوتر عادي',
+                                'قدرة الآلات على محاكاة الذكاء البشري',
+                                'نوع من أنواع الروبوتات',
+                                'تقنية للألعاب فقط'
+                            ],
+                            correct: 1
+                        }
+                    ]
+                }
+            };
+        }
+
+        // Course System
+        function showCourseDetails(courseId) {
+            const course = platformData.courses.find(c => c.id === courseId);
+            if (!course) return;
+            
+            const courseDetailsContent = document.getElementById('courseDetailsContent');
+            courseDetailsContent.innerHTML = `
+                <div class="bg-gradient-to-r from-${course.color}-500 to-${course.color}-600 p-6 text-white">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center">
+                            <div class="text-4xl ml-4">${course.icon}</div>
+                            <div>
+                                <h2 class="text-2xl font-bold mb-2">${course.title}</h2>
+                                <p class="text-${course.color}-100">${course.description}</p>
+                            </div>
+                        </div>
+                        <div class="text-center">
+                            <p class="text-3xl font-bold">${course.price}</p>
+                            <p class="text-${course.color}-100">ريال سعودي</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="p-6">
+                    <div class="grid grid-cols-3 gap-4 mb-6">
+                        <div class="text-center bg-gray-50 p-4 rounded-lg">
+                            <i class="fas fa-book text-2xl text-${course.color}-500 mb-2"></i>
+                            <p class="text-lg font-bold text-gray-800">${course.lessons}</p>
+                            <p class="text-sm text-gray-600">درس</p>
+                        </div>
+                        <div class="text-center bg-gray-50 p-4 rounded-lg">
+                            <i class="fas fa-clock text-2xl text-${course.color}-500 mb-2"></i>
+                            <p class="text-lg font-bold text-gray-800">${course.hours}</p>
+                            <p class="text-sm text-gray-600">ساعة</p>
+                        </div>
+                        <div class="text-center bg-gray-50 p-4 rounded-lg">
+                            <i class="fas fa-star text-2xl text-yellow-500 mb-2"></i>
+                            <p class="text-lg font-bold text-gray-800">4.9</p>
+                            <p class="text-sm text-gray-600">تقييم</p>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-6">
+                        <h3 class="text-xl font-bold text-gray-800 mb-3">تفاصيل الدورة</h3>
+                        <p class="text-gray-600 leading-relaxed">${course.details}</p>
+                    </div>
+                    
+                    <div class="mb-6">
+                        <h3 class="text-xl font-bold text-gray-800 mb-3">ما ستتعلمه</h3>
+                        <ul class="space-y-2">
+                            <li class="flex items-center text-gray-600">
+                                <i class="fas fa-check text-green-500 ml-2"></i>
+                                أساسيات ومفاهيم الذكاء الاصطناعي
+                            </li>
+                            <li class="flex items-center text-gray-600">
+                                <i class="fas fa-check text-green-500 ml-2"></i>
+                                تطبيقات عملية ومشاريع تفاعلية
+                            </li>
+                            <li class="flex items-center text-gray-600">
+                                <i class="fas fa-check text-green-500 ml-2"></i>
+                                أدوات وتقنيات حديثة في المجال
+                            </li>
+                            <li class="flex items-center text-gray-600">
+                                <i class="fas fa-check text-green-500 ml-2"></i>
+                                شهادة معتمدة عند إكمال الدورة
+                            </li>
+                        </ul>
+                    </div>
+                    
+                    <div class="flex space-x-3 space-x-reverse">
+                        <button onclick="registerForCourse('${course.id}')" class="flex-1 bg-gradient-to-r from-green-500 to-blue-500 text-white py-4 rounded-lg font-bold text-lg active:scale-95 transition-all">
+                            <i class="fas fa-user-plus ml-2"></i>
+                            سجل الآن
+                        </button>
+                        <button onclick="startCourse('${course.id}')" class="flex-1 bg-${course.color}-500 text-white py-4 rounded-lg font-bold text-lg active:scale-95 transition-all">
+                            <i class="fas fa-play ml-2"></i>
+                            معاينة مجانية
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('coursesSection').classList.add('hidden');
+            document.getElementById('courseDetailsSection').classList.remove('hidden');
+        }
+
+        function backToCourses() {
+            document.getElementById('courseDetailsSection').classList.add('hidden');
+            document.getElementById('coursesSection').classList.remove('hidden');
+        }
+
+        function registerForCourse(courseId) {
+            window.currentCourseId = courseId;
+            document.getElementById('courseRegistrationModal').classList.remove('hidden');
+        }
+
+        function hideCourseRegistration() {
+            document.getElementById('courseRegistrationModal').classList.add('hidden');
+            document.getElementById('courseRegistrationForm').reset();
+        }
+
+        // Course Registration Form Handler
+        document.getElementById('courseRegistrationForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const courseId = window.currentCourseId;
+            const reason = document.getElementById('registrationReason').value;
+            const educationLevel = document.getElementById('educationLevel').value;
+            const previousExperience = document.getElementById('previousExperience').value;
+            
+            if (courseId && reason && educationLevel && previousExperience && currentUser) {
+                const registration = {
+                    id: 'reg-' + Date.now(),
+                    courseId: courseId,
+                    studentName: currentUser.name,
+                    email: currentUser.email,
+                    phone: currentUser.phone,
+                    reason: reason,
+                    educationLevel: educationLevel,
+                    previousExperience: previousExperience,
+                    registrationDate: new Date().toISOString()
+                };
+                
+                platformData.registrations.push(registration);
+                savePlatformData();
+                
+                hideCourseRegistration();
+                showNotification('تم تسجيلك في الدورة بنجاح! سيتم التواصل معك قريباً', 'success');
+                
+                // Update user stats
+                userStats.completedCourses += 1;
+                updateStatsDisplay();
+                saveUserStats();
+            } else {
+                showNotification('يرجى ملء جميع الحقول المطلوبة', 'error');
+            }
+        });
+
+        function startCourse(courseId) {
+            const course = platformData.courses.find(c => c.id === courseId);
+            if (course) {
+                showNotification(`تم بدء معاينة دورة: ${course.title}`, 'success');
+                
+                userStats.studyHours += 1;
+                updateStatsDisplay();
+                saveUserStats();
+                
+                setTimeout(() => {
+                    showNotification('مبروك! أكملت درساً جديداً', 'success');
+                }, 3000);
+            }
+        }
+
+        // Quiz System
+        function startQuiz(quizId) {
+            if (!quizData[quizId]) return;
+            
+            currentQuiz = quizData[quizId];
+            currentQuestionIndex = 0;
+            quizAnswers = [];
+            timeRemaining = currentQuiz.timeLimit * 60;
+            
+            document.getElementById('quizList').classList.add('hidden');
+            document.getElementById('quizInterface').classList.remove('hidden');
+            
+            document.getElementById('quizTitle').textContent = currentQuiz.title;
+            
+            startQuizTimer();
+            displayQuestion();
+        }
+
+        function displayQuestion() {
+            const question = currentQuiz.questions[currentQuestionIndex];
+            const totalQuestions = currentQuiz.questions.length;
+            
+            document.getElementById('questionCounter').textContent = `السؤال ${currentQuestionIndex + 1} من ${totalQuestions}`;
+            document.getElementById('questionText').textContent = question.question;
+            document.getElementById('quizProgress').style.width = `${((currentQuestionIndex + 1) / totalQuestions) * 100}%`;
+            
+            const optionsContainer = document.getElementById('optionsContainer');
+            optionsContainer.innerHTML = '';
+            
+            question.options.forEach((option, index) => {
+                const optionDiv = document.createElement('div');
+                optionDiv.className = 'quiz-option p-4 border border-gray-300 rounded-lg cursor-pointer transition-all';
+                optionDiv.textContent = option;
+                optionDiv.onclick = () => selectOption(index, optionDiv);
+                optionsContainer.appendChild(optionDiv);
+            });
+            
+            document.getElementById('prevBtn').disabled = currentQuestionIndex === 0;
+            document.getElementById('nextBtn').textContent = currentQuestionIndex === totalQuestions - 1 ? 'إنهاء الاختبار' : 'التالي';
+        }
+
+        function selectOption(optionIndex, optionElement) {
+            document.querySelectorAll('.quiz-option').forEach(opt => {
+                opt.classList.remove('bg-blue-500', 'text-white');
+            });
+            
+            optionElement.classList.add('bg-blue-500', 'text-white');
+            quizAnswers[currentQuestionIndex] = optionIndex;
+        }
+
+        function nextQuestion() {
+            if (currentQuestionIndex < currentQuiz.questions.length - 1) {
+                currentQuestionIndex++;
+                displayQuestion();
+            } else {
+                finishQuiz();
+            }
+        }
+
+        function previousQuestion() {
+            if (currentQuestionIndex > 0) {
+                currentQuestionIndex--;
+                displayQuestion();
+            }
+        }
+
+        function startQuizTimer() {
+            quizTimer = setInterval(() => {
+                timeRemaining--;
+                const minutes = Math.floor(timeRemaining / 60);
+                const seconds = timeRemaining % 60;
+                document.getElementById('timer').textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+                
+                if (timeRemaining <= 0) {
+                    clearInterval(quizTimer);
+                    finishQuiz();
+                }
+            }, 1000);
+        }
+
+        function finishQuiz() {
+            clearInterval(quizTimer);
+            
+            let correctAnswers = 0;
+            currentQuiz.questions.forEach((question, index) => {
+                if (quizAnswers[index] === question.correct) {
+                    correctAnswers++;
+                }
+            });
+            
+            const totalQuestions = currentQuiz.questions.length;
+            const score = Math.round((correctAnswers / totalQuestions) * 100);
+            const points = correctAnswers * 10;
+            
+            document.getElementById('quizInterface').classList.add('hidden');
+            document.getElementById('quizResults').classList.remove('hidden');
+            
+            document.getElementById('finalScore').textContent = `${score}%`;
+            document.getElementById('correctAnswers').textContent = correctAnswers;
+            document.getElementById('wrongAnswers').textContent = totalQuestions - correctAnswers;
+            document.getElementById('earnedPoints').textContent = points;
+            
+            updateUserStats(points);
+            showNotification(`تهانينا! حصلت على ${score}% في الاختبار`, 'success');
+        }
+
+        function backToQuizList() {
+            document.getElementById('quizResults').classList.add('hidden');
+            document.getElementById('quizList').classList.remove('hidden');
+        }
+
+        function updateUserStats(points) {
+            userStats.totalPoints += points;
+            updateStatsDisplay();
+            saveUserStats();
+        }
+
+        // Certificate System
+        function updateCertificateNames() {
+            if (currentUser) {
+                document.getElementById('certName1').textContent = currentUser.name;
+                document.getElementById('certName2').textContent = currentUser.name;
+            }
+        }
+
+        function downloadCertificate(certId) {
+            showNotification('جاري تحميل الشهادة...', 'info');
+            setTimeout(() => {
+                showNotification('تم تحميل الشهادة بنجاح!', 'success');
+            }, 2000);
+        }
+
+        function generateCertificate() {
+            const course = document.getElementById('courseSelect').value;
+            const type = document.getElementById('certType').value;
+            
+            if (course && type) {
+                showNotification('تم إنشاء الشهادة بنجاح!', 'success');
+                userStats.earnedCertificates += 1;
+                updateStatsDisplay();
+                saveUserStats();
+            } else {
+                showNotification('يرجى اختيار الدورة ونوع الشهادة', 'error');
+            }
+        }
+
+        // Chat System
+        function sendMessage() {
+            const input = document.getElementById('chatInput');
+            const message = input.value.trim();
+            
+            if (message) {
+                addChatMessage(message, 'user');
+                input.value = '';
+                
+                setTimeout(() => {
+                    const response = getBotResponse(message);
+                    addChatMessage(response, 'bot');
+                }, 1000);
+            }
+        }
+
+        function sendQuickMessage(message) {
+            addChatMessage(message, 'user');
+            
+            setTimeout(() => {
+                const response = getBotResponse(message);
+                addChatMessage(response, 'bot');
+            }, 1000);
+        }
+
+        function addChatMessage(message, sender) {
+            const chatMessages = document.getElementById('chatMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'chat-message flex items-start';
+            
+            if (sender === 'user') {
+                messageDiv.innerHTML = `
+                    <div class="bg-blue-500 text-white p-3 rounded-lg max-w-xs mr-auto">
+                        <p>${message}</p>
+                    </div>
+                    <div class="w-8 h-8 bg-gray-500 rounded-full flex items-center justify-center text-white text-sm font-bold mr-2">${currentUser.name.charAt(0)}</div>
+                `;
+            } else {
+                messageDiv.innerHTML = `
+                    <div class="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white text-sm font-bold ml-2">م</div>
+                    <div class="bg-blue-50 p-3 rounded-lg max-w-xs">
+                        <p class="text-gray-800">${message}</p>
+                    </div>
+                `;
+            }
+            
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        function getBotResponse(message) {
+            const responses = {
+                'ما هي الدورات المتاحة؟': 'لدينا عدة دورات متاحة: مهارات الذكاء الاصطناعي للطلاب، تصميم شخصية افتراضية، والذكاء الاصطناعي للمصممين. أي دورة تهمك أكثر؟',
+                'كيف أحصل على شهادة؟': 'للحصول على شهادة، يجب إكمال الدورة بنجاح واجتياز الاختبار النهائي بدرجة لا تقل عن 70%. ستحصل على الشهادة مجاناً!',
+                'ما هو تقدمي في التعلم؟': 'تقدمك ممتاز! لقد أكملت 3 دورات وحصلت على 2 شهادة. استمر في التعلم!'
+            };
+            
+            return responses[message] || 'شكراً لك على سؤالك. سأقوم بتوجيهك للمختص المناسب قريباً.';
+        }
+
+        function handleChatKeyPress(event) {
+            if (event.key === 'Enter') {
+                sendMessage();
+            }
+        }
+
+        // Mobile Menu System
+        function toggleMobileMenu() {
+            const mobileMenu = document.getElementById('mobileMenu');
+            mobileMenu.classList.toggle('hidden');
+        }
+
+        // Logout System
+        function logout() {
+            localStorage.removeItem('studentName');
+            localStorage.removeItem('studentPhone');
+            localStorage.removeItem('studentEmail');
+            localStorage.removeItem('userStats');
+            
+            currentUser = null;
+            userStats = {
+                completedCourses: 0,
+                earnedCertificates: 0,
+                studyHours: 0,
+                totalPoints: 0
+            };
+            
+            document.getElementById('mainWebsite').classList.add('hidden');
+            document.getElementById('loginScreen').classList.remove('hidden');
+            
+            document.getElementById('loginForm').reset();
+            
+            showNotification('تم تسجيل الخروج بنجاح', 'info');
+        }
+
+        // Initialize dashboard as default view
+        document.addEventListener('DOMContentLoaded', function() {
+            if (currentUser) {
+                showSection('dashboard');
+            }
+        });
+    </script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'97401b2b749cf777',t:'MTc1NjAwOTc0MC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
