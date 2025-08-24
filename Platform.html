@@ -2410,6 +2410,17 @@
 
     let firestore = null;
     let rtdb = null;
+    let supabaseClient = null;
+    function initializeSupabase() {
+        try {
+            const SUPABASE_URL = 'https://cwwsmiolauhhjyfkryat.supabase.co';
+            const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN3d3NtaW9sYXVoaGp5ZmtyeWF0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYwNDg1MTYsImV4cCI6MjA3MTYyNDUxNn0.bT2tDSbiW3lqUSTsCI701VMwJRzy8uWXjxx1yAHTaJA';
+            if (window.supabase && SUPABASE_URL && SUPABASE_ANON_KEY) {
+                supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+                console.log('Supabase initialized');
+            }
+        } catch (e) { console.warn('Supabase init failed', e); }
+    }
     function initializeFirebaseIfConfigured() {
         try {
             const overrideJson = localStorage.getItem('firebaseConfigOverride');
@@ -2430,6 +2441,7 @@
                         try {
                             firestore = firebase.firestore();
                             rtdb = firebase.database();
+                            initializeSupabase();
                             if (typeof syncFromFirestoreIfAvailable === 'function') {
                                 syncFromFirestoreIfAvailable();
                             }
@@ -2448,15 +2460,18 @@
                 } else {
                     firestore = firebase.firestore();
                     rtdb = firebase.database();
+                    initializeSupabase();
                 }
                 console.log('Firebase initialized');
             } else {
                 console.log('Firebase config missing. Falling back to localStorage.');
+                initializeSupabase();
             }
         } catch (e) {
             console.warn('Firebase init failed, using localStorage fallback.', e);
             firestore = null;
             rtdb = null;
+            initializeSupabase();
         }
     }
     // Apply config from URL if provided: ?fb=BASE64(JSON)
@@ -2585,6 +2600,14 @@
 
     async function fetchCollection(name) {
         await ensureAuth();
+        if (supabaseClient) {
+            const table = name === collections.certificateRequests ? 'certificate_requests' : name;
+            const { data, error } = await supabaseClient.from(table).select('*').order('inserted_at', { ascending: true }).returns<Array<any>>();
+            if (!error && Array.isArray(data)) {
+                // Map id field
+                return data.map(row => ({ id: row.id, ...row }));
+            }
+        }
         if (rtdb) {
             const snap = await rtdb.ref(name).get();
             const val = snap.val() || {};
@@ -2599,6 +2622,14 @@
 
     async function addDocument(name, data, customId = null) {
         await ensureAuth();
+        if (supabaseClient) {
+            const table = name === collections.certificateRequests ? 'certificate_requests' : name;
+            const payload = { ...data };
+            if (customId) payload.id = customId;
+            const { data: created, error } = await supabaseClient.from(table).insert(payload).select('*').single();
+            if (error) throw error;
+            return { id: created.id, ...created };
+        }
         if (rtdb) {
             const id = customId || rtdb.ref().push().key;
             await rtdb.ref(`${name}/${id}`).set(data);
@@ -2617,6 +2648,12 @@
 
     async function updateDocument(name, id, data) {
         await ensureAuth();
+        if (supabaseClient) {
+            const table = name === collections.certificateRequests ? 'certificate_requests' : name;
+            const { data: updated, error } = await supabaseClient.from(table).update(data).eq('id', id).select('*').single();
+            if (error) throw error;
+            return { id, ...updated };
+        }
         if (rtdb) {
             await rtdb.ref(`${name}/${id}`).update(data);
             return { id, ...data };
@@ -2630,6 +2667,12 @@
 
     async function deleteDocument(name, id) {
         await ensureAuth();
+        if (supabaseClient) {
+            const table = name === collections.certificateRequests ? 'certificate_requests' : name;
+            const { error } = await supabaseClient.from(table).delete().eq('id', id);
+            if (error) throw error;
+            return true;
+        }
         if (rtdb) {
             await rtdb.ref(`${name}/${id}`).remove();
             return true;
@@ -2718,7 +2761,38 @@
         // cleanup previous
         try { __unsubscribes.forEach(fn => fn && fn()); } catch(_) {}
         __unsubscribes = [];
-        if (rtdb) {
+        if (supabaseClient) {
+            // Supabase Realtime via channels
+            try {
+                const chCourses = supabaseClient.channel('courses-ch')
+                    .on('postgres_changes', { event: '*', schema: 'public', table: 'courses' }, (payload) => {
+                        fetchCollection(collections.courses).then(rows => {
+                            if (Array.isArray(rows)) {
+                                platformData.courses = rows;
+                                savePlatformData();
+                                if (typeof loadAdminCourses === 'function') loadAdminCourses();
+                                if (typeof displayCourses === 'function') displayCourses();
+                            }
+                        });
+                    }).subscribe();
+                const chAnn = supabaseClient.channel('announcements-ch')
+                    .on('postgres_changes', { event: '*', schema: 'public', table: 'announcements' }, (payload) => {
+                        fetchCollection(collections.announcements).then(rows => {
+                            if (Array.isArray(rows)) {
+                                platformData.announcements = rows;
+                                savePlatformData();
+                                if (typeof loadAdminAnnouncements === 'function') loadAdminAnnouncements();
+                                if (typeof showActiveAnnouncements === 'function') showActiveAnnouncements();
+                            }
+                        });
+                    }).subscribe();
+                __unsubscribes.push(() => { supabaseClient.removeChannel(chCourses); });
+                __unsubscribes.push(() => { supabaseClient.removeChannel(chAnn); });
+                // Initial load
+                fetchCollection(collections.courses).then(rows => { if (Array.isArray(rows)) { platformData.courses = rows; savePlatformData(); if (typeof loadAdminCourses === 'function') loadAdminCourses(); if (typeof displayCourses === 'function') displayCourses(); } });
+                fetchCollection(collections.announcements).then(rows => { if (Array.isArray(rows)) { platformData.announcements = rows; savePlatformData(); if (typeof loadAdminAnnouncements === 'function') loadAdminAnnouncements(); if (typeof showActiveAnnouncements === 'function') showActiveAnnouncements(); } });
+            } catch (e) { console.warn('Supabase realtime error', e); }
+        } else if (rtdb) {
             const cRef = rtdb.ref(collections.courses);
             const aRef = rtdb.ref(collections.announcements);
             const cCb = cRef.on('value', snap => {
