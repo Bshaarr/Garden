@@ -1028,6 +1028,7 @@
                 }
             ],
             registrations: [],
+            certificateRequests: [],
             announcements: [
                 {
                     id: 1,
@@ -2295,7 +2296,8 @@
         courses: 'courses',
         announcements: 'announcements',
         registrations: 'registrations',
-        users: 'users'
+        users: 'users',
+        certificateRequests: 'certificateRequests'
     };
 
     async function fetchCollection(name) {
@@ -2329,10 +2331,11 @@
     async function syncFromFirestoreIfAvailable() {
         if (!firestore) return;
         try {
-            const [courses, announcements, registrations] = await Promise.all([
+            const [courses, announcements, registrations, certificateRequests] = await Promise.all([
                 fetchCollection(collections.courses),
                 fetchCollection(collections.announcements),
-                fetchCollection(collections.registrations)
+                fetchCollection(collections.registrations),
+                fetchCollection(collections.certificateRequests)
             ]);
 
             if (Array.isArray(courses)) platformData.courses = courses.map(c => ({
@@ -2365,6 +2368,18 @@
                 educationLevel: r.educationLevel,
                 previousExperience: r.previousExperience,
                 registrationDate: r.registrationDate
+            }));
+
+            if (Array.isArray(certificateRequests)) platformData.certificateRequests = certificateRequests.map(cr => ({
+                id: cr.id,
+                courseId: cr.courseId,
+                studentName: cr.studentName,
+                email: cr.email,
+                phone: cr.phone,
+                status: cr.status,
+                requestDate: cr.requestDate,
+                approvedBy: cr.approvedBy || null,
+                approvalDate: cr.approvalDate || null
             }));
 
             savePlatformData();
